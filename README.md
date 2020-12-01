@@ -8,7 +8,7 @@ yarn add git+ssh://git@github.com/synonymdev/omnibolt-js
 
 or
 
-npm i git+ssh://git@github.com/synonymdev/omnibolt-js
+npm i -S git+ssh://git@github.com/synonymdev/omnibolt-js
 ```
 
 ## Usage
