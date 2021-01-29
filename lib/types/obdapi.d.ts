@@ -1,16 +1,18 @@
-import { P2PPeer, BtcFundingInfo, FundingBtcCreated, FundingBtcSigned, OmniFundingAssetInfo, OmniSendAssetInfo, OpenChannelInfo, AcceptChannelInfo, AssetFundingCreatedInfo, AssetFundingSignedInfo, SignedInfo100100, SignedInfo100101, SignedInfo100102, SignedInfo100103, SignedInfo100104, SignedInfo100105, SignedInfo100106, SignedInfo100110, SignedInfo100111, SignedInfo100112, SignedInfo100113, SignedInfo100114, SignedInfo100360, SignedInfo100361, SignedInfo100362, SignedInfo100363, SignedInfo100364, SignedInfo101035, SignedInfo101134, CommitmentTx, CommitmentTxSigned, InvoiceInfo, HTLCFindPathInfo, addHTLCInfo, HtlcSignedInfo, ForwardRInfo, SignRInfo, CloseHtlcTxInfo, CloseHtlcTxInfoSigned, IssueFixedAmountInfo, IssueManagedAmoutInfo, OmniSendGrant, OmniSendRevoke, CloseChannelSign, AtomicSwapAccepted, AtomicSwapRequest } from "./pojo";
+import { MessageType, Message, P2PPeer, BtcFundingInfo, FundingBtcCreated, FundingBtcSigned, OmniFundingAssetInfo, OmniSendAssetInfo, OpenChannelInfo, AcceptChannelInfo, AssetFundingCreatedInfo, AssetFundingSignedInfo, SignedInfo100100, SignedInfo100101, SignedInfo100102, SignedInfo100103, SignedInfo100104, SignedInfo100105, SignedInfo100106, SignedInfo100110, SignedInfo100111, SignedInfo100112, SignedInfo100113, SignedInfo100114, SignedInfo100360, SignedInfo100361, SignedInfo100362, SignedInfo100363, SignedInfo100364, SignedInfo101035, SignedInfo101134, CommitmentTx, CommitmentTxSigned, InvoiceInfo, HTLCFindPathInfo, addHTLCInfo, HtlcSignedInfo, ForwardRInfo, SignRInfo, CloseHtlcTxInfo, CloseHtlcTxInfoSigned, IssueFixedAmountInfo, IssueManagedAmoutInfo, OmniSendGrant, OmniSendRevoke, CloseChannelSign, AtomicSwapAccepted, AtomicSwapRequest } from "./pojo";
+import { Result } from "./result";
+import { IConnect, ILogin } from "./types";
 export default class ObdApi {
     constructor({ url }?: {
         url?: string | undefined;
     });
-    private isConnectedToOBD;
-    private isLoggedIn;
-    private messageType;
-    private ws;
-    private defaultUrl;
-    private globalCallback;
-    private callbackMap;
-    private onMessage;
+    isConnectedToOBD: boolean;
+    isLoggedIn: boolean;
+    messageType: MessageType;
+    ws: WebSocket | any;
+    defaultUrl: string;
+    globalCallback: Function | undefined;
+    callbackMap: Map<number, Function>;
+    onMessage: Function | undefined;
     onChannelOpenAttempt: Function | undefined;
     onBitcoinFundingCreated: Function | undefined;
     onChannelClose: Function | undefined;
@@ -19,14 +21,6 @@ export default class ObdApi {
         nodeAddress: string;
         nodePeerId: string;
         userPeerId: string;
-    };
-    failure(data: any): {
-        error: boolean;
-        data: string | Object;
-    };
-    success(data: any): {
-        error: boolean;
-        data: string | Object;
     };
     connect({ url, onOpen, onMessage, onChannelOpenAttempt, onBitcoinFundingCreated, onAssetFundingCreated, onChannelClose, onError, onClose, onAddHTLC, onForwardR, onSignR, onCloseHTLC }?: {
         url?: string | undefined;
@@ -42,17 +36,14 @@ export default class ObdApi {
         onForwardR?: (() => null) | undefined;
         onSignR?: (() => null) | undefined;
         onCloseHTLC?: (() => null) | undefined;
-    }): Promise<{
-        error: boolean;
-        data: string | Object;
-    }>;
+    }): Promise<Result<IConnect>>;
     registerEvent(msgType: number, callback: Function): void;
     removeEvent(msgType: number): void;
     sendJsonData(msg: string, type: number, callback: Function): void;
     connectToServer(url: string, callback: Function, globalCallback: Function): void;
-    private sendData;
-    private getDataFromServer;
-    logIn(mnemonic: string, callback: Function): void;
+    sendData(msg: Message, callback: Function): void;
+    getDataFromServer(jsonData: any): any;
+    logIn(mnemonic: string, callback: (data: Result<ILogin>) => any): Result<string>;
     userPeerId: string;
     onLogIn(resultData: any): void;
     disconnect(): void;
@@ -181,5 +172,5 @@ export default class ObdApi {
     onCloseChannelSigned(jsonData: any): void;
     atomicSwap(recipient_node_peer_id: string, recipient_user_peer_id: string, info: AtomicSwapRequest, callback: Function): any;
     atomicSwapAccepted(recipient_node_peer_id: string, recipient_user_peer_id: string, info: AtomicSwapAccepted, callback: Function): any;
-    private isNotString;
+    isNotString(str: String): boolean;
 }

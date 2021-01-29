@@ -48,6 +48,8 @@ import {
   AtomicSwapAccepted,
   AtomicSwapRequest
 } from "./pojo";
+import { err, ok, Result } from "./result";
+import { IConnect, ILogin } from "./types";
 
 const DEFAULT_URL = "62.234.216.108:60020";
 
@@ -56,34 +58,26 @@ export default class ObdApi {
     this.defaultUrl = url;
   }
 
-  private isConnectedToOBD: boolean = false;
-  private isLoggedIn: boolean = false;
-  private messageType: MessageType = new MessageType();
-  private ws: WebSocket | any;
-  private defaultUrl: string;
-  private globalCallback: Function | undefined;
-  private callbackMap: Map<number, Function> = new Map<number, Function>();
-  private onMessage: Function | undefined;
-  public onChannelOpenAttempt: Function | undefined;
-  public onBitcoinFundingCreated: Function | undefined;
-  public onChannelClose: Function | undefined;
-  public onAssetFundingCreated: Function | undefined;
+  isConnectedToOBD: boolean = false;
+  isLoggedIn: boolean = false;
+  messageType: MessageType = new MessageType();
+  ws: WebSocket | any;
+  defaultUrl: string;
+  globalCallback: Function | undefined;
+  callbackMap: Map<number, Function> = new Map<number, Function>();
+  onMessage: Function | undefined;
+  onChannelOpenAttempt: Function | undefined;
+  onBitcoinFundingCreated: Function | undefined;
+  onChannelClose: Function | undefined;
+  onAssetFundingCreated: Function | undefined;
 
-  public loginData = {
+  loginData = {
     nodeAddress: "",
     nodePeerId: "",
     userPeerId: ""
   };
 
-  public failure(data): { error: boolean; data: string | Object } {
-    return { error: true, data };
-  }
-
-  public success(data): { error: boolean; data: string | Object } {
-    return { error: false, data };
-  }
-
-  public connect({
+  connect({
     url = this.defaultUrl,
     onOpen = (): any => null,
     onMessage = undefined,
@@ -97,7 +91,7 @@ export default class ObdApi {
     onForwardR = () => null,
     onSignR = () => null,
     onCloseHTLC = () => null
-  } = {}): Promise<{ error: boolean; data: string | Object }> {
+  } = {}): Promise<Result<IConnect>> {
     return new Promise((resolve) => {
       if (this.isConnectedToOBD || url !== this.defaultUrl) {
         //Disconnect from the current node and connect to the new one
@@ -169,25 +163,26 @@ export default class ObdApi {
           }
 
           /*
-         MsgType_HTLC_SendAddHTLC_40
-         MsgType_HTLC_RecvAddHTLC_40
-         */
+				   MsgType_HTLC_SendAddHTLC_40
+				   MsgType_HTLC_RecvAddHTLC_40
+				   */
           if (jsonData.type == -110040) {
             this.onAddHTLC(jsonData);
           }
 
           /*
-         MsgType_HTLC_SendAddHTLCSigned_41
-         MsgType_HTLC_RecvAddHTLCSigned_41
-         */
+				   MsgType_HTLC_SendAddHTLCSigned_41
+				   MsgType_HTLC_RecvAddHTLCSigned_41
+				   */
           if (jsonData.type == -100041) {
+            //Sent Add HTLC
           }
           console.log(e);
-          resolve(this.success(jsonData));
+          resolve(ok(jsonData));
         } catch (e) {
           console.log(e);
           if (this.onMessage) this.onMessage(e);
-          resolve(this.failure(e));
+          resolve(err(e));
         }
       };
 
@@ -197,7 +192,7 @@ export default class ObdApi {
         console.log(e);
         this.disconnect();
         onError(e.message);
-        resolve(this.failure(e.message));
+        resolve(err(e.message));
       };
 
       this.ws.onclose = (e) => {
@@ -214,7 +209,7 @@ export default class ObdApi {
    * @param msgType
    * @param callback
    */
-  public registerEvent(msgType: number, callback: Function) {
+  registerEvent(msgType: number, callback: Function) {
     if (callback == null) {
       console.info("callback function is null");
       return;
@@ -230,7 +225,7 @@ export default class ObdApi {
    * remove event
    * @param msgType
    */
-  public removeEvent(msgType: number) {
+  removeEvent(msgType: number) {
     this.callbackMap.delete(msgType);
     console.info("----------> removeEvent");
   }
@@ -241,7 +236,7 @@ export default class ObdApi {
    * @param type
    * @param callback
    */
-  public sendJsonData(msg: string, type: number, callback: Function) {
+  sendJsonData(msg: string, type: number, callback: Function) {
     if (!this.isConnectedToOBD) {
       alert("please try to connect obd again");
       return;
@@ -268,11 +263,7 @@ export default class ObdApi {
    * @param callback function
    * @param globalCallback function
    */
-  public connectToServer(
-    url: string,
-    callback: Function,
-    globalCallback: Function
-  ) {
+  connectToServer(url: string, callback: Function, globalCallback: Function) {
     if (this.isConnectedToOBD) {
       console.info("already connected");
       if (callback) callback("already connected");
@@ -321,7 +312,7 @@ export default class ObdApi {
     }
   }
 
-  private sendData(msg: Message, callback: Function) {
+  sendData(msg: Message, callback: Function) {
     if (!this.isConnectedToOBD) {
       alert("please try to connect obd again");
       return;
@@ -347,7 +338,7 @@ export default class ObdApi {
     this.ws.send(JSON.stringify(msg));
   }
 
-  private getDataFromServer(jsonData: any) {
+  getDataFromServer(jsonData: any) {
     console.info(jsonData);
 
     if (this.globalCallback) this.globalCallback(jsonData);
@@ -359,22 +350,22 @@ export default class ObdApi {
       //omni error ,do not alert
       if (jsonData.type == this.messageType.MsgType_Core_Omni_Getbalance_2112) {
         try {
-          if (callback != null) return callback(this.failure("Omni Error"));
+          if (callback != null) return callback(err("Omni Error"));
         } catch {
-          return this.failure(jsonData);
+          return err(jsonData);
         }
       }
 
       if (jsonData.type !== this.messageType.MsgType_Error_0) {
-        alert(jsonData.result);
+        console.log(jsonData.result);
       }
 
       try {
-        if (callback != null) return callback(this.failure(jsonData));
+        if (callback != null) return callback(err(jsonData));
       } catch {
-        return this.failure(jsonData);
+        return err(jsonData);
       }
-      return this.failure(jsonData);
+      return err(jsonData);
     }
 
     let resultData = jsonData.result;
@@ -397,16 +388,16 @@ export default class ObdApi {
       if (callback !== null) {
         resultData["to_peer_id"] = toId;
         try {
-          return callback(this.success(resultData));
+          return callback(ok(resultData));
         } catch {
-          return this.failure(jsonData);
+          return err(jsonData);
         }
       }
       return;
     }
 
     // This message is send to myself
-    if (callback != null) callback(this.success(resultData));
+    if (callback != null) callback(ok(resultData));
 
     if (this.loginData.userPeerId === fromId) return;
 
@@ -496,33 +487,32 @@ export default class ObdApi {
    * @param mnemonic string
    * @param callback function
    */
-  public logIn(mnemonic: string, callback: Function) {
+  logIn(
+    mnemonic: string,
+    callback: (data: Result<ILogin>) => any
+  ): Result<string> {
     if (this.isLoggedIn) {
-      if (callback !== null) {
-        callback("already logined");
-        alert("You are already logged in!");
-      }
-      return;
+      return ok("You are already logged in!");
     }
 
     if (this.isNotString(mnemonic)) {
-      alert("empty mnemonic");
-      return;
+      return err("empty mnemonic");
     }
 
     let msg = new Message();
     msg.type = this.messageType.MsgType_UserLogin_2001;
     msg.data["mnemonic"] = mnemonic;
     this.sendData(msg, callback);
+    return ok("");
   }
 
-  public userPeerId: string = "";
+  userPeerId: string = "";
 
-  public onLogIn(resultData: any) {
+  onLogIn(resultData: any) {
     if (!this.isLoggedIn) this.isLoggedIn = true;
   }
 
-  public disconnect() {
+  disconnect() {
     this.ws.close();
   }
 
@@ -530,7 +520,7 @@ export default class ObdApi {
    * MsgType_UserLogout_2002
    * @param callback function
    */
-  public logout(callback: Function) {
+  logout(callback: Function) {
     if (this.isLoggedIn) {
       let msg = new Message();
       msg.type = this.messageType.MsgType_UserLogout_2002;
@@ -540,7 +530,7 @@ export default class ObdApi {
     }
   }
 
-  public onLogout(jsonData: any) {
+  onLogout(jsonData: any) {
     this.isLoggedIn = false;
   }
 
@@ -549,7 +539,7 @@ export default class ObdApi {
    * @param info P2PPeer
    * @param callback function
    */
-  public connectPeer(info: P2PPeer, callback: Function) {
+  connectPeer(info: P2PPeer, callback: Function) {
     if (this.isNotString(info.remote_node_address)) {
       alert("empty remote_node_address");
       return;
@@ -565,19 +555,19 @@ export default class ObdApi {
    * MsgType_Core_GetNewAddress_2101
    * @param callback function
    */
-  // public getNewAddress(callback: Function) {
+  //  getNewAddress(callback: Function) {
   //   let msg = new Message();
   //   msg.type = this.messageType.MsgType_Core_GetNewAddress_2101;
   //   this.sendData(msg, callback);
   // }
-  // public onGetNewAddressFromOmniCore(jsonData: any) {}
+  //  onGetNewAddressFromOmniCore(jsonData: any) {}
 
   /**
    * MsgType_Core_FundingBTC_2109
    * @param info BtcFundingInfo
    * @param callback function
    */
-  public fundingBitcoin(info: BtcFundingInfo, callback: Function) {
+  fundingBitcoin(info: BtcFundingInfo, callback: Function) {
     if (this.isNotString(info.from_address)) {
       alert("empty from_address");
       return;
@@ -600,7 +590,7 @@ export default class ObdApi {
     this.sendData(msg, callback);
   }
 
-  public onFundingBitcoin(jsonData: any) {}
+  onFundingBitcoin(jsonData: any) {}
 
   /**
    * MsgType_FundingCreate_SendBtcFundingCreated_340
@@ -609,7 +599,7 @@ export default class ObdApi {
    * @param info  FundingBtcCreated
    * @param callback  Function
    */
-  public bitcoinFundingCreated(
+  bitcoinFundingCreated(
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: FundingBtcCreated,
@@ -649,7 +639,7 @@ export default class ObdApi {
    * @param signed_hex  string
    * @param callback  Function
    */
-  public sendSignedHex100341(
+  sendSignedHex100341(
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     signed_hex: string,
@@ -680,30 +670,28 @@ export default class ObdApi {
    * @param info FundingBtcSigned
    * @param callback  Function
    */
-  public bitcoinFundingSigned(
+  bitcoinFundingSigned(
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: FundingBtcSigned,
     callback: Function
   ) {
     if (this.isNotString(recipient_node_peer_id)) {
-      return callback(this.failure("error recipient_node_peer_id"));
+      return callback(err("error recipient_node_peer_id"));
     }
 
     if (this.isNotString(recipient_user_peer_id)) {
-      return callback(this.failure("error recipient_user_peer_id"));
+      return callback(err("error recipient_user_peer_id"));
     }
 
     if (this.isNotString(info.temporary_channel_id)) {
-      return callback(this.failure("empty temporary_channel_id"));
+      return callback(err("empty temporary_channel_id"));
     }
     if (this.isNotString(info.funding_txid)) {
-      return callback(this.failure("empty funding_txid"));
+      return callback(err("empty funding_txid"));
     }
     if (this.isNotString(info.signed_miner_redeem_transaction_hex)) {
-      return callback(
-        this.failure("empty signed_miner_redeem_transaction_hex")
-      );
+      return callback(err("empty signed_miner_redeem_transaction_hex"));
     }
 
     let msg = new Message();
@@ -718,32 +706,32 @@ export default class ObdApi {
    * MsgType_Core_Omni_ListProperties_2117
    * @param callback function
    */
-  public listProperties(callback: Function) {
+  listProperties(callback: Function) {
     let msg = new Message();
     msg.type = this.messageType.MsgType_Core_Omni_ListProperties_2117;
     this.sendData(msg, callback);
   }
 
-  public onListProperties(jsonData: any) {}
+  onListProperties(jsonData: any) {}
 
   /**
    * MsgType_Core_Omni_FundingAsset_2120
    * @param info OmniFundingAssetInfo
    * @param callback function
    */
-  public fundingAsset(info: OmniFundingAssetInfo, callback: Function) {
+  fundingAsset(info: OmniFundingAssetInfo, callback: Function) {
     if (this.isNotString(info.from_address)) {
-      return callback(this.failure("empty from_address"));
+      return callback(err("empty from_address"));
     }
     if (this.isNotString(info.to_address)) {
-      return callback(this.failure("empty to_address"));
+      return callback(err("empty to_address"));
     }
     if (info.property_id == null || info.property_id <= 0) {
-      return callback(this.failure("error property_id"));
+      return callback(err("error property_id"));
     }
 
     if (info.amount == null || info.amount <= 0) {
-      return callback(this.failure("Incorrect amount"));
+      return callback(err("Incorrect amount"));
     }
     if (info.miner_fee == null || info.miner_fee <= 0) {
       info.miner_fee = 0;
@@ -755,26 +743,26 @@ export default class ObdApi {
     this.sendData(msg, callback);
   }
 
-  public onFundingAsset(jsonData: any) {}
+  onFundingAsset(jsonData: any) {}
 
   /**
    * MsgType_Core_Omni_Send_2121
    * @param info OmniSendAssetInfo
    * @param callback function
    */
-  public sendAsset(info: OmniSendAssetInfo, callback: Function) {
+  sendAsset(info: OmniSendAssetInfo, callback: Function) {
     if (this.isNotString(info.from_address)) {
-      return callback(this.failure("empty from_address"));
+      return callback(err("empty from_address"));
     }
     if (this.isNotString(info.to_address)) {
-      return callback(this.failure("empty to_address"));
+      return callback(err("empty to_address"));
     }
     if (info.property_id == null || info.property_id <= 0) {
-      return callback(this.failure("error property_id"));
+      return callback(err("error property_id"));
     }
 
     if (info.amount == null || info.amount <= 0) {
-      return callback(this.failure("wrong amount"));
+      return callback(err("wrong amount"));
     }
 
     let msg = new Message();
@@ -783,28 +771,28 @@ export default class ObdApi {
     this.sendData(msg, callback);
   }
 
-  public onSendAsset(jsonData: any) {}
+  onSendAsset(jsonData: any) {}
 
   /**
    * MsgType_Mnemonic_CreateAddress_3000
    * @param callback function
    */
-  public genAddressFromMnemonic(callback: Function) {
+  genAddressFromMnemonic(callback: Function) {
     let msg = new Message();
     msg.type = this.messageType.MsgType_Mnemonic_CreateAddress_3000;
     this.sendData(msg, callback);
   }
 
-  public onGenAddressFromMnemonic(jsonData: any) {}
+  onGenAddressFromMnemonic(jsonData: any) {}
 
   /**
    * MsgType_Mnemonic_GetAddressByIndex_3001
    * @param index:number
    * @param callback function
    */
-  public getAddressInfo(index: number, callback: Function) {
+  getAddressInfo(index: number, callback: Function) {
     if (index == null || index < 0) {
-      return callback(this.failure("error index"));
+      return callback(err("error index"));
     }
 
     let msg: Message = new Message();
@@ -813,7 +801,7 @@ export default class ObdApi {
     this.sendData(msg, callback);
   }
 
-  public onGetAddressInfo(jsonData: any) {}
+  onGetAddressInfo(jsonData: any) {}
 
   /**
    * MsgType_SendChannelOpen_32
@@ -822,22 +810,22 @@ export default class ObdApi {
    * @param info OpenChannelInfo
    * @param callback function
    */
-  public openChannel(
+  openChannel(
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: OpenChannelInfo,
     callback: Function
   ) {
     if (this.isNotString(recipient_node_peer_id)) {
-      return callback(this.failure("error recipient_node_peer_id"));
+      return callback(err("error recipient_node_peer_id"));
     }
 
     if (this.isNotString(recipient_user_peer_id)) {
-      return callback(this.failure("error recipient_user_peer_id"));
+      return callback(err("error recipient_user_peer_id"));
     }
 
     if (this.isNotString(info.funding_pubkey)) {
-      return callback(this.failure("error funding_pubkey"));
+      return callback(err("error funding_pubkey"));
     }
 
     if (info.is_private == null) {
@@ -852,7 +840,7 @@ export default class ObdApi {
     this.sendData(msg, callback);
   }
 
-  public onOpenChannel(jsonData: any) {}
+  onOpenChannel(jsonData: any) {}
 
   /**
    * MsgType_SendChannelAccept_33
@@ -861,22 +849,22 @@ export default class ObdApi {
    * @param info AcceptChannelInfo
    * @param callback function
    */
-  public acceptChannel(
+  acceptChannel(
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: AcceptChannelInfo,
     callback: Function
   ) {
     if (this.isNotString(recipient_node_peer_id)) {
-      return callback(this.failure("error recipient_node_peer_id"));
+      return callback(err("error recipient_node_peer_id"));
     }
 
     if (this.isNotString(recipient_user_peer_id)) {
-      return callback(this.failure("error recipient_user_peer_id"));
+      return callback(err("error recipient_user_peer_id"));
     }
 
     if (this.isNotString(info.temporary_channel_id)) {
-      return callback(this.failure("empty temporary_channel_id"));
+      return callback(err("empty temporary_channel_id"));
     }
 
     if (info.approval == null) {
@@ -885,7 +873,7 @@ export default class ObdApi {
 
     if (info.approval) {
       if (this.isNotString(info.funding_pubkey)) {
-        return callback(this.failure("empty funding_pubkey"));
+        return callback(err("empty funding_pubkey"));
       }
     }
 
@@ -897,7 +885,7 @@ export default class ObdApi {
     this.sendData(msg, callback);
   }
 
-  public onAcceptChannel(jsonData: any) {}
+  onAcceptChannel(jsonData: any) {}
 
   /**
    * MsgType_CheckChannelAddessExist_3156
@@ -908,22 +896,22 @@ export default class ObdApi {
    * @param info AcceptChannelInfo
    * @param callback function
    */
-  public checkChannelAddessExist(
+  checkChannelAddessExist(
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: AcceptChannelInfo,
     callback: Function
   ) {
     if (this.isNotString(recipient_node_peer_id)) {
-      return callback(this.failure("error recipient_node_peer_id"));
+      return callback(err("error recipient_node_peer_id"));
     }
 
     if (this.isNotString(recipient_user_peer_id)) {
-      return callback(this.failure("error recipient_user_peer_id"));
+      return callback(err("error recipient_user_peer_id"));
     }
 
     if (this.isNotString(info.temporary_channel_id)) {
-      return callback(this.failure("empty temporary_channel_id"));
+      return callback(err("empty temporary_channel_id"));
     }
 
     if (info.approval == null) {
@@ -932,7 +920,7 @@ export default class ObdApi {
 
     if (info.approval) {
       if (this.isNotString(info.funding_pubkey)) {
-        return callback(this.failure("empty funding_pubkey"));
+        return callback(err("empty funding_pubkey"));
       }
     }
 
@@ -944,7 +932,7 @@ export default class ObdApi {
     this.sendData(msg, callback);
   }
 
-  public onCheckChannelAddessExist(jsonData: any) {}
+  onCheckChannelAddessExist(jsonData: any) {}
 
   /**
    * MsgType_FundingCreate_SendAssetFundingCreated_34
@@ -953,28 +941,28 @@ export default class ObdApi {
    * @param info AssetFundingCreatedInfo
    * @param callback function
    */
-  public assetFundingCreated(
+  assetFundingCreated(
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: AssetFundingCreatedInfo,
     callback: Function
   ) {
     if (this.isNotString(recipient_node_peer_id)) {
-      return callback(this.failure("error recipient_node_peer_id"));
+      return callback(err("error recipient_node_peer_id"));
     }
 
     if (this.isNotString(recipient_user_peer_id)) {
-      return callback(this.failure("error recipient_user_peer_id"));
+      return callback(err("error recipient_user_peer_id"));
     }
 
     if (this.isNotString(info.temporary_channel_id)) {
-      return callback(this.failure("empty temporary_channel_id"));
+      return callback(err("empty temporary_channel_id"));
     }
     if (this.isNotString(info.funding_tx_hex)) {
-      return callback(this.failure("empty funding_tx_hex"));
+      return callback(err("empty funding_tx_hex"));
     }
     if (this.isNotString(info.temp_address_pub_key)) {
-      return callback(this.failure("empty temp_address_pub_key"));
+      return callback(err("empty temp_address_pub_key"));
     }
 
     let msg = new Message();
@@ -992,18 +980,18 @@ export default class ObdApi {
    * @param signed_hex  string
    * @param callback  Function
    */
-  public sendSignedHex101034(
+  sendSignedHex101034(
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     signed_hex: string,
     callback: Function
   ) {
     if (this.isNotString(recipient_node_peer_id)) {
-      return callback(this.failure("error recipient_node_peer_id"));
+      return callback(err("error recipient_node_peer_id"));
     }
 
     if (this.isNotString(recipient_user_peer_id)) {
-      return callback(this.failure("error recipient_user_peer_id"));
+      return callback(err("error recipient_user_peer_id"));
     }
 
     let msg = new Message();
@@ -1019,9 +1007,9 @@ export default class ObdApi {
    * @param info      SignedInfo101134
    * @param callback  Function
    */
-  public sendSignedHex101134(info: SignedInfo101134, callback: Function) {
+  sendSignedHex101134(info: SignedInfo101134, callback: Function) {
     if (this.isNotString(info.channel_id)) {
-      return callback(this.failure("empty channel_id"));
+      return callback(err("empty channel_id"));
     }
 
     let msg = new Message();
@@ -1037,26 +1025,26 @@ export default class ObdApi {
    * @param info AssetFundingSignedInfo
    * @param callback function
    */
-  public assetFundingSigned(
+  assetFundingSigned(
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: AssetFundingSignedInfo,
     callback: Function
   ) {
     if (this.isNotString(recipient_node_peer_id)) {
-      return callback(this.failure("error recipient_node_peer_id"));
+      return callback(err("error recipient_node_peer_id"));
     }
 
     if (this.isNotString(recipient_user_peer_id)) {
-      return callback(this.failure("error recipient_user_peer_id"));
+      return callback(err("error recipient_user_peer_id"));
     }
 
     if (this.isNotString(info.temporary_channel_id)) {
-      return callback(this.failure("empty temporary_channel_id"));
+      return callback(err("empty temporary_channel_id"));
     }
 
     if (this.isNotString(info.signed_alice_rsmc_hex)) {
-      return callback(this.failure("empty signed_alice_rsmc_hex"));
+      return callback(err("empty signed_alice_rsmc_hex"));
     }
 
     let msg = new Message();
@@ -1067,7 +1055,7 @@ export default class ObdApi {
     this.sendData(msg, callback);
   }
 
-  public onAssetFundingSigned(jsonData: any) {}
+  onAssetFundingSigned(jsonData: any) {}
 
   /**
    * MsgType_ClientSign_Duplex_AssetFunding_RdAndBr_1035
@@ -1076,22 +1064,22 @@ export default class ObdApi {
    * @param info  SignedInfo101035
    * @param callback  Function
    */
-  public sendSignedHex101035(
+  sendSignedHex101035(
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: SignedInfo101035,
     callback: Function
   ) {
     if (this.isNotString(recipient_node_peer_id)) {
-      return callback(this.failure("error recipient_node_peer_id"));
+      return callback(err("error recipient_node_peer_id"));
     }
 
     if (this.isNotString(recipient_user_peer_id)) {
-      return callback(this.failure("error recipient_user_peer_id"));
+      return callback(err("error recipient_user_peer_id"));
     }
 
     if (this.isNotString(info.temporary_channel_id)) {
-      return callback(this.failure("empty temporary_channel_id"));
+      return callback(err("empty temporary_channel_id"));
     }
 
     let msg = new Message();
@@ -1109,28 +1097,28 @@ export default class ObdApi {
    * @param info CommitmentTx
    * @param callback function
    */
-  public commitmentTransactionCreated(
+  commitmentTransactionCreated(
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: CommitmentTx,
     callback: Function
   ) {
     if (this.isNotString(recipient_node_peer_id)) {
-      return callback(this.failure("error recipient_node_peer_id"));
+      return callback(err("error recipient_node_peer_id"));
     }
 
     if (this.isNotString(recipient_user_peer_id)) {
-      return callback(this.failure("error recipient_user_peer_id"));
+      return callback(err("error recipient_user_peer_id"));
     }
 
     if (this.isNotString(info.channel_id)) {
-      return callback(this.failure("empty channel_id"));
+      return callback(err("empty channel_id"));
     }
     if (this.isNotString(info.curr_temp_address_pub_key)) {
-      return callback(this.failure("empty curr_temp_address_pub_key"));
+      return callback(err("empty curr_temp_address_pub_key"));
     }
     if (info.amount == null || info.amount <= 0) {
-      return callback(this.failure("wrong amount"));
+      return callback(err("wrong amount"));
     }
 
     let msg = new Message();
@@ -1141,7 +1129,7 @@ export default class ObdApi {
     this.sendData(msg, callback);
   }
 
-  public onCommitmentTransactionCreated(jsonData: any) {}
+  onCommitmentTransactionCreated(jsonData: any) {}
 
   /**
    * MsgType_ClientSign_CommitmentTx_AliceSignC2a_360
@@ -1150,22 +1138,22 @@ export default class ObdApi {
    * @param info      SignedInfo100360
    * @param callback  Function
    */
-  public sendSignedHex100360(
+  sendSignedHex100360(
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: SignedInfo100360,
     callback: Function
   ) {
     if (this.isNotString(recipient_node_peer_id)) {
-      return callback(this.failure("error recipient_node_peer_id"));
+      return callback(err("error recipient_node_peer_id"));
     }
 
     if (this.isNotString(recipient_user_peer_id)) {
-      return callback(this.failure("error recipient_user_peer_id"));
+      return callback(err("error recipient_user_peer_id"));
     }
 
     if (this.isNotString(info.channel_id)) {
-      return callback(this.failure("empty channel_id"));
+      return callback(err("empty channel_id"));
     }
 
     let msg = new Message();
@@ -1183,26 +1171,26 @@ export default class ObdApi {
    * @param info CommitmentTxSigned
    * @param callback function
    */
-  public commitmentTransactionAccepted(
+  commitmentTransactionAccepted(
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: CommitmentTxSigned,
     callback: Function
   ) {
     if (this.isNotString(recipient_node_peer_id)) {
-      return callback(this.failure("error recipient_node_peer_id"));
+      return callback(err("error recipient_node_peer_id"));
     }
 
     if (this.isNotString(recipient_user_peer_id)) {
-      return callback(this.failure("error recipient_user_peer_id"));
+      return callback(err("error recipient_user_peer_id"));
     }
 
     if (this.isNotString(info.channel_id)) {
-      return callback(this.failure("empty channel_id"));
+      return callback(err("empty channel_id"));
     }
 
     if (this.isNotString(info.msg_hash)) {
-      return callback(this.failure("empty msg_hash"));
+      return callback(err("empty msg_hash"));
     }
 
     if (info.approval == null) {
@@ -1210,7 +1198,7 @@ export default class ObdApi {
     }
     if (info.approval == true) {
       if (this.isNotString(info.curr_temp_address_pub_key)) {
-        return callback(this.failure("empty curr_temp_address_pub_key"));
+        return callback(err("empty curr_temp_address_pub_key"));
       }
     }
 
@@ -1222,7 +1210,7 @@ export default class ObdApi {
     this.sendData(msg, callback);
   }
 
-  public onCommitmentTransactionAccepted(jsonData: any) {}
+  onCommitmentTransactionAccepted(jsonData: any) {}
 
   /**
    * MsgType_ClientSign_CommitmentTx_BobSignC2b_361
@@ -1231,22 +1219,22 @@ export default class ObdApi {
    * @param info      SignedInfo100361
    * @param callback  Function
    */
-  public sendSignedHex100361(
+  sendSignedHex100361(
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: SignedInfo100361,
     callback: Function
   ) {
     if (this.isNotString(recipient_node_peer_id)) {
-      return callback(this.failure("error recipient_node_peer_id"));
+      return callback(err("error recipient_node_peer_id"));
     }
 
     if (this.isNotString(recipient_user_peer_id)) {
-      return callback(this.failure("error recipient_user_peer_id"));
+      return callback(err("error recipient_user_peer_id"));
     }
 
     if (this.isNotString(info.channel_id)) {
-      return callback(this.failure("empty channel_id"));
+      return callback(err("empty channel_id"));
     }
 
     let msg = new Message();
@@ -1264,22 +1252,22 @@ export default class ObdApi {
    * @param info      SignedInfo100362
    * @param callback  Function
    */
-  public sendSignedHex100362(
+  sendSignedHex100362(
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: SignedInfo100362,
     callback: Function
   ) {
     if (this.isNotString(recipient_node_peer_id)) {
-      return callback(this.failure("error recipient_node_peer_id"));
+      return callback(err("error recipient_node_peer_id"));
     }
 
     if (this.isNotString(recipient_user_peer_id)) {
-      return callback(this.failure("error recipient_user_peer_id"));
+      return callback(err("error recipient_user_peer_id"));
     }
 
     if (this.isNotString(info.channel_id)) {
-      return callback(this.failure("empty channel_id"));
+      return callback(err("empty channel_id"));
     }
 
     let msg = new Message();
@@ -1297,22 +1285,22 @@ export default class ObdApi {
    * @param info      SignedInfo100363
    * @param callback  Function
    */
-  public sendSignedHex100363(
+  sendSignedHex100363(
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: SignedInfo100363,
     callback: Function
   ) {
     if (this.isNotString(recipient_node_peer_id)) {
-      return callback(this.failure("error recipient_node_peer_id"));
+      return callback(err("error recipient_node_peer_id"));
     }
 
     if (this.isNotString(recipient_user_peer_id)) {
-      return callback(this.failure("error recipient_user_peer_id"));
+      return callback(err("error recipient_user_peer_id"));
     }
 
     if (this.isNotString(info.channel_id)) {
-      return callback(this.failure("empty channel_id"));
+      return callback(err("empty channel_id"));
     }
 
     let msg = new Message();
@@ -1328,9 +1316,9 @@ export default class ObdApi {
    * @param info      SignedInfo100364
    * @param callback  Function
    */
-  public sendSignedHex100364(info: SignedInfo100364, callback: Function) {
+  sendSignedHex100364(info: SignedInfo100364, callback: Function) {
     if (this.isNotString(info.channel_id)) {
-      return callback(this.failure("empty channel_id"));
+      return callback(err("empty channel_id"));
     }
 
     let msg = new Message();
@@ -1344,21 +1332,21 @@ export default class ObdApi {
    * @param info InvoiceInfo
    * @param callback function
    */
-  public addInvoice(info: InvoiceInfo, callback: Function) {
+  addInvoice(info: InvoiceInfo, callback: Function) {
     if (info.property_id == null || info.property_id <= 0) {
-      return callback(this.failure("empty property_id"));
+      return callback(err("empty property_id"));
     }
 
     if (info.amount == null || info.amount <= 0) {
-      return callback(this.failure("wrong amount"));
+      return callback(err("wrong amount"));
     }
 
     if (this.isNotString(info.h)) {
-      return callback(this.failure("empty h"));
+      return callback(err("empty h"));
     }
 
     if (this.isNotString(info.expiry_time)) {
-      return callback(this.failure("empty expiry_time"));
+      return callback(err("empty expiry_time"));
     }
 
     let msg = new Message();
@@ -1367,16 +1355,16 @@ export default class ObdApi {
     this.sendData(msg, callback);
   }
 
-  public onAddInvoice(jsonData: any) {}
+  onAddInvoice(jsonData: any) {}
 
   /**
    * MsgType_HTLC_FindPath_401
    * @param info HTLCFindPathInfo
    * @param callback function
    */
-  public HTLCFindPath(info: HTLCFindPathInfo, callback: Function) {
+  HTLCFindPath(info: HTLCFindPathInfo, callback: Function) {
     if (this.isNotString(info.invoice)) {
-      return callback(this.failure(`error invoice:\n\n ${info}`));
+      return callback(err(`error invoice:\n\n ${info}`));
     }
     let msg = new Message();
     msg.type = this.messageType.MsgType_HTLC_FindPath_401;
@@ -1384,7 +1372,7 @@ export default class ObdApi {
     this.sendData(msg, callback);
   }
 
-  public onHTLCFindPath(jsonData: any) {}
+  onHTLCFindPath(jsonData: any) {}
 
   /**
    * MsgType_HTLC_SendAddHTLC_40
@@ -1393,51 +1381,49 @@ export default class ObdApi {
    * @param info addHTLCInfo
    * @param callback function
    */
-  public addHTLC(
+  addHTLC(
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: addHTLCInfo,
     callback: Function
   ) {
     if (this.isNotString(recipient_node_peer_id)) {
-      return callback(this.failure("error recipient_node_peer_id"));
+      return callback(err("error recipient_node_peer_id"));
     }
 
     if (this.isNotString(recipient_user_peer_id)) {
-      return callback(this.failure("error recipient_user_peer_id"));
+      return callback(err("error recipient_user_peer_id"));
     }
 
     if (this.isNotString(info.h)) {
-      return callback(this.failure("empty h"));
+      return callback(err("empty h"));
     }
     if (info.property_id <= 0) {
-      return callback(this.failure("wrong property_id"));
+      return callback(err("wrong property_id"));
     }
     if (info.amount <= 0) {
-      return callback(this.failure("wrong amount"));
+      return callback(err("wrong amount"));
     }
     if (this.isNotString(info.memo)) {
       info.memo = "";
     }
     if (this.isNotString(info.routing_packet)) {
-      return callback(this.failure("empty routing_packet"));
+      return callback(err("empty routing_packet"));
     }
     if (info.cltv_expiry <= 0) {
-      return callback(this.failure("wrong cltv_expiry"));
+      return callback(err("wrong cltv_expiry"));
     }
     if (this.isNotString(info.last_temp_address_private_key)) {
-      return callback(this.failure("empty last_temp_address_private_key"));
+      return callback(err("empty last_temp_address_private_key"));
     }
     if (this.isNotString(info.curr_rsmc_temp_address_pub_key)) {
-      return callback(this.failure("empty curr_rsmc_temp_address_pub_key"));
+      return callback(err("empty curr_rsmc_temp_address_pub_key"));
     }
     if (this.isNotString(info.curr_htlc_temp_address_pub_key)) {
-      return callback(this.failure("empty curr_htlc_temp_address_pub_key"));
+      return callback(err("empty curr_htlc_temp_address_pub_key"));
     }
     if (this.isNotString(info.curr_htlc_temp_address_for_ht1a_pub_key)) {
-      return callback(
-        this.failure("empty curr_htlc_temp_address_for_ht1a_pub_key")
-      );
+      return callback(err("empty curr_htlc_temp_address_for_ht1a_pub_key"));
     }
 
     let msg = new Message();
@@ -1448,7 +1434,7 @@ export default class ObdApi {
     this.sendData(msg, callback);
   }
 
-  public onAddHTLC(jsonData: any) {}
+  onAddHTLC(jsonData: any) {}
 
   /**
    * MsgType_HTLC_ClientSign_Alice_C3a_100
@@ -1457,22 +1443,22 @@ export default class ObdApi {
    * @param info  SignedInfo100100
    * @param callback  Function
    */
-  public sendSignedHex100100(
+  sendSignedHex100100(
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: SignedInfo100100,
     callback: Function
   ) {
     if (this.isNotString(recipient_node_peer_id)) {
-      return callback(this.failure("error recipient_node_peer_id"));
+      return callback(err("error recipient_node_peer_id"));
     }
 
     if (this.isNotString(recipient_user_peer_id)) {
-      return callback(this.failure("error recipient_user_peer_id"));
+      return callback(err("error recipient_user_peer_id"));
     }
 
     if (this.isNotString(info.channel_id)) {
-      return callback(this.failure("empty channel_id"));
+      return callback(err("empty channel_id"));
     }
 
     let msg = new Message();
@@ -1490,22 +1476,22 @@ export default class ObdApi {
    * @param info  SignedInfo100101
    * @param callback  Function
    */
-  public sendSignedHex100101(
+  sendSignedHex100101(
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: SignedInfo100101,
     callback: Function
   ) {
     if (this.isNotString(recipient_node_peer_id)) {
-      return callback(this.failure("error recipient_node_peer_id"));
+      return callback(err("error recipient_node_peer_id"));
     }
 
     if (this.isNotString(recipient_user_peer_id)) {
-      return callback(this.failure("error recipient_user_peer_id"));
+      return callback(err("error recipient_user_peer_id"));
     }
 
     if (this.isNotString(info.channel_id)) {
-      return callback(this.failure("empty channel_id"));
+      return callback(err("empty channel_id"));
     }
 
     let msg = new Message();
@@ -1521,9 +1507,9 @@ export default class ObdApi {
    * @param info  SignedInfo100102
    * @param callback  Function
    */
-  public sendSignedHex100102(info: SignedInfo100102, callback: Function) {
+  sendSignedHex100102(info: SignedInfo100102, callback: Function) {
     if (this.isNotString(info.channel_id)) {
-      return callback(this.failure("empty channel_id"));
+      return callback(err("empty channel_id"));
     }
 
     let msg = new Message();
@@ -1539,22 +1525,22 @@ export default class ObdApi {
    * @param info  SignedInfo100103
    * @param callback  Function
    */
-  public sendSignedHex100103(
+  sendSignedHex100103(
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: SignedInfo100103,
     callback: Function
   ) {
     if (this.isNotString(recipient_node_peer_id)) {
-      return callback(this.failure("error recipient_node_peer_id"));
+      return callback(err("error recipient_node_peer_id"));
     }
 
     if (this.isNotString(recipient_user_peer_id)) {
-      return callback(this.failure("error recipient_user_peer_id"));
+      return callback(err("error recipient_user_peer_id"));
     }
 
     if (this.isNotString(info.channel_id)) {
-      return callback(this.failure("empty channel_id"));
+      return callback(err("empty channel_id"));
     }
 
     let msg = new Message();
@@ -1570,15 +1556,13 @@ export default class ObdApi {
    * @param info  SignedInfo100104
    * @param callback  Function
    */
-  public sendSignedHex100104(info: SignedInfo100104, callback: Function) {
+  sendSignedHex100104(info: SignedInfo100104, callback: Function) {
     if (this.isNotString(info.channel_id)) {
-      return callback(this.failure("empty channel_id"));
+      return callback(err("empty channel_id"));
     }
 
     if (this.isNotString(info.curr_htlc_temp_address_for_he_pub_key)) {
-      return callback(
-        this.failure("empty curr_htlc_temp_address_for_he_pub_key")
-      );
+      return callback(err("empty curr_htlc_temp_address_for_he_pub_key"));
     }
 
     let msg = new Message();
@@ -1594,22 +1578,22 @@ export default class ObdApi {
    * @param info  SignedInfo100105
    * @param callback  Function
    */
-  public sendSignedHex100105(
+  sendSignedHex100105(
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: SignedInfo100105,
     callback: Function
   ) {
     if (this.isNotString(recipient_node_peer_id)) {
-      return callback(this.failure("error recipient_node_peer_id"));
+      return callback(err("error recipient_node_peer_id"));
     }
 
     if (this.isNotString(recipient_user_peer_id)) {
-      return callback(this.failure("error recipient_user_peer_id"));
+      return callback(err("error recipient_user_peer_id"));
     }
 
     if (this.isNotString(info.channel_id)) {
-      return callback(this.failure("empty channel_id"));
+      return callback(err("empty channel_id"));
     }
 
     let msg = new Message();
@@ -1627,22 +1611,22 @@ export default class ObdApi {
    * @param info  SignedInfo100106
    * @param callback  Function
    */
-  public sendSignedHex100106(
+  sendSignedHex100106(
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: SignedInfo100106,
     callback: Function
   ) {
     if (this.isNotString(recipient_node_peer_id)) {
-      return callback(this.failure("error recipient_node_peer_id"));
+      return callback(err("error recipient_node_peer_id"));
     }
 
     if (this.isNotString(recipient_user_peer_id)) {
-      return callback(this.failure("error recipient_user_peer_id"));
+      return callback(err("error recipient_user_peer_id"));
     }
 
     if (this.isNotString(info.channel_id)) {
-      return callback(this.failure("empty channel_id"));
+      return callback(err("empty channel_id"));
     }
 
     let msg = new Message();
@@ -1660,22 +1644,22 @@ export default class ObdApi {
    * @param info  SignedInfo100110
    * @param callback  Function
    */
-  public sendSignedHex100110(
+  sendSignedHex100110(
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: SignedInfo100110,
     callback: Function
   ) {
     if (this.isNotString(recipient_node_peer_id)) {
-      return callback(this.failure("error recipient_node_peer_id"));
+      return callback(err("error recipient_node_peer_id"));
     }
 
     if (this.isNotString(recipient_user_peer_id)) {
-      return callback(this.failure("error recipient_user_peer_id"));
+      return callback(err("error recipient_user_peer_id"));
     }
 
     if (this.isNotString(info.channel_id)) {
-      return callback(this.failure("empty channel_id"));
+      return callback(err("empty channel_id"));
     }
 
     let msg = new Message();
@@ -1693,22 +1677,22 @@ export default class ObdApi {
    * @param info  SignedInfo100111
    * @param callback  Function
    */
-  public sendSignedHex100111(
+  sendSignedHex100111(
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: SignedInfo100111,
     callback: Function
   ) {
     if (this.isNotString(recipient_node_peer_id)) {
-      return callback(this.failure("error recipient_node_peer_id"));
+      return callback(err("error recipient_node_peer_id"));
     }
 
     if (this.isNotString(recipient_user_peer_id)) {
-      return callback(this.failure("error recipient_user_peer_id"));
+      return callback(err("error recipient_user_peer_id"));
     }
 
     if (this.isNotString(info.channel_id)) {
-      return callback(this.failure("empty channel_id"));
+      return callback(err("empty channel_id"));
     }
 
     let msg = new Message();
@@ -1724,9 +1708,9 @@ export default class ObdApi {
    * @param info  SignedInfo100112
    * @param callback  Function
    */
-  public sendSignedHex100112(info: SignedInfo100112, callback: Function) {
+  sendSignedHex100112(info: SignedInfo100112, callback: Function) {
     if (this.isNotString(info.channel_id)) {
-      return callback(this.failure("empty channel_id"));
+      return callback(err("empty channel_id"));
     }
 
     let msg = new Message();
@@ -1742,22 +1726,22 @@ export default class ObdApi {
    * @param info  SignedInfo100113
    * @param callback  Function
    */
-  public sendSignedHex100113(
+  sendSignedHex100113(
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: SignedInfo100113,
     callback: Function
   ) {
     if (this.isNotString(recipient_node_peer_id)) {
-      return callback(this.failure("error recipient_node_peer_id"));
+      return callback(err("error recipient_node_peer_id"));
     }
 
     if (this.isNotString(recipient_user_peer_id)) {
-      return callback(this.failure("error recipient_user_peer_id"));
+      return callback(err("error recipient_user_peer_id"));
     }
 
     if (this.isNotString(info.channel_id)) {
-      return callback(this.failure("empty channel_id"));
+      return callback(err("empty channel_id"));
     }
 
     let msg = new Message();
@@ -1773,9 +1757,9 @@ export default class ObdApi {
    * @param info  SignedInfo100114
    * @param callback  Function
    */
-  public sendSignedHex100114(info: SignedInfo100114, callback: Function) {
+  sendSignedHex100114(info: SignedInfo100114, callback: Function) {
     if (this.isNotString(info.channel_id)) {
-      return callback(this.failure("empty channel_id"));
+      return callback(err("empty channel_id"));
     }
 
     let msg = new Message();
@@ -1791,26 +1775,26 @@ export default class ObdApi {
    * @param info HtlcSignedInfo
    * @param callback function
    */
-  public htlcSigned(
+  htlcSigned(
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: HtlcSignedInfo,
     callback: Function
   ) {
     if (this.isNotString(recipient_node_peer_id)) {
-      return callback(this.failure("error recipient_node_peer_id"));
+      return callback(err("error recipient_node_peer_id"));
     }
     if (this.isNotString(recipient_user_peer_id)) {
-      return callback(this.failure("error recipient_user_peer_id"));
+      return callback(err("error recipient_user_peer_id"));
     }
     if (this.isNotString(info.payer_commitment_tx_hash)) {
-      return callback(this.failure("empty payer_commitment_tx_hash"));
+      return callback(err("empty payer_commitment_tx_hash"));
     }
     if (this.isNotString(info.curr_rsmc_temp_address_pub_key)) {
-      return callback(this.failure("empty curr_rsmc_temp_address_pub_key"));
+      return callback(err("empty curr_rsmc_temp_address_pub_key"));
     }
     if (this.isNotString(info.curr_htlc_temp_address_pub_key)) {
-      return callback(this.failure("empty curr_htlc_temp_address_pub_key"));
+      return callback(err("empty curr_htlc_temp_address_pub_key"));
     }
 
     let msg = new Message();
@@ -1821,7 +1805,7 @@ export default class ObdApi {
     this.sendData(msg, callback);
   }
 
-  public onHtlcSigned(jsonData: any) {}
+  onHtlcSigned(jsonData: any) {}
 
   /* ***************** backward R begin*****************/
   /**
@@ -1831,24 +1815,24 @@ export default class ObdApi {
    * @param info ForwardRInfo
    * @param callback function
    */
-  public forwardR(
+  forwardR(
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: ForwardRInfo,
     callback: Function
   ) {
     if (this.isNotString(recipient_node_peer_id)) {
-      return callback(this.failure("error recipient_node_peer_id"));
+      return callback(err("error recipient_node_peer_id"));
     }
     if (this.isNotString(recipient_user_peer_id)) {
-      return callback(this.failure("error recipient_user_peer_id"));
+      return callback(err("error recipient_user_peer_id"));
     }
     if (this.isNotString(info.channel_id)) {
-      return callback(this.failure("empty channel_id"));
+      return callback(err("empty channel_id"));
     }
 
     if (this.isNotString(info.r)) {
-      return callback(this.failure("empty r"));
+      return callback(err("empty r"));
     }
 
     let msg = new Message();
@@ -1859,7 +1843,7 @@ export default class ObdApi {
     this.sendData(msg, callback);
   }
 
-  public onForwardR(jsonData: any) {}
+  onForwardR(jsonData: any) {}
 
   /**
    * MsgType_HTLC_SendSignVerifyR_46
@@ -1868,20 +1852,20 @@ export default class ObdApi {
    * @param info SignRInfo
    * @param callback function
    */
-  public signR(
+  signR(
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: SignRInfo,
     callback: Function
   ) {
     if (this.isNotString(recipient_node_peer_id)) {
-      return callback(this.failure("error recipient_node_peer_id"));
+      return callback(err("error recipient_node_peer_id"));
     }
     if (this.isNotString(recipient_user_peer_id)) {
-      return callback(this.failure("error recipient_user_peer_id"));
+      return callback(err("error recipient_user_peer_id"));
     }
     if (this.isNotString(info.channel_id)) {
-      return callback(this.failure("empty channel_id"));
+      return callback(err("empty channel_id"));
     }
 
     let msg = new Message();
@@ -1892,7 +1876,7 @@ export default class ObdApi {
     this.sendData(msg, callback);
   }
 
-  public onSignR(jsonData: any) {}
+  onSignR(jsonData: any) {}
 
   /* ***************** backward R end*****************/
 
@@ -1904,33 +1888,33 @@ export default class ObdApi {
    * @param info CloseHtlcTxInfo
    * @param callback function
    * */
-  public closeHTLC(
+  closeHTLC(
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: CloseHtlcTxInfo,
     callback: Function
   ) {
     if (this.isNotString(recipient_node_peer_id)) {
-      return callback(this.failure("error recipient_node_peer_id"));
+      return callback(err("error recipient_node_peer_id"));
     }
     if (this.isNotString(recipient_user_peer_id)) {
-      return callback(this.failure("error recipient_user_peer_id"));
+      return callback(err("error recipient_user_peer_id"));
     }
     if (this.isNotString(info.channel_id)) {
-      return callback(this.failure("empty channel_id"));
+      return callback(err("empty channel_id"));
     }
 
     if (this.isNotString(info.last_rsmc_temp_address_private_key)) {
-      return callback(this.failure("empty last_rsmc_temp_address_private_key"));
+      return callback(err("empty last_rsmc_temp_address_private_key"));
     }
     if (this.isNotString(info.last_htlc_temp_address_private_key)) {
-      return callback(this.failure("empty last_htlc_temp_address_private_key"));
+      return callback(err("empty last_htlc_temp_address_private_key"));
     }
     if (this.isNotString(info.last_htlc_temp_address_for_htnx_private_key)) {
-      return callback(this.failure("empty last_htlc_temp_address_private_key"));
+      return callback(err("empty last_htlc_temp_address_private_key"));
     }
     if (this.isNotString(info.curr_temp_address_pub_key)) {
-      return callback(this.failure("empty curr_rsmc_temp_address_pub_key"));
+      return callback(err("empty curr_rsmc_temp_address_pub_key"));
     }
 
     let msg = new Message();
@@ -1941,7 +1925,7 @@ export default class ObdApi {
     this.sendData(msg, callback);
   }
 
-  public onCloseHTLC(jsonData: any) {}
+  onCloseHTLC(jsonData: any) {}
 
   /**
    * MsgType_HTLC_SendCloseSigned_50
@@ -1950,35 +1934,33 @@ export default class ObdApi {
    * @param info CloseHtlcTxInfoSigned
    * @param callback function
    */
-  public closeHTLCSigned(
+  closeHTLCSigned(
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: CloseHtlcTxInfoSigned,
     callback: Function
   ) {
     if (this.isNotString(recipient_node_peer_id)) {
-      return callback(this.failure("error recipient_node_peer_id"));
+      return callback(err("error recipient_node_peer_id"));
     }
     if (this.isNotString(recipient_user_peer_id)) {
-      return callback(this.failure("error recipient_user_peer_id"));
+      return callback(err("error recipient_user_peer_id"));
     }
 
     if (this.isNotString(info.msg_hash)) {
-      return callback(this.failure("empty msg_hash"));
+      return callback(err("empty msg_hash"));
     }
     if (this.isNotString(info.last_rsmc_temp_address_private_key)) {
-      return callback(this.failure("empty last_rsmc_temp_address_private_key"));
+      return callback(err("empty last_rsmc_temp_address_private_key"));
     }
     if (this.isNotString(info.last_htlc_temp_address_private_key)) {
-      return callback(this.failure("empty last_htlc_temp_address_private_key"));
+      return callback(err("empty last_htlc_temp_address_private_key"));
     }
     if (this.isNotString(info.last_htlc_temp_address_for_htnx_private_key)) {
-      return callback(
-        this.failure("empty last_htlc_temp_address_for_htnx_private_key")
-      );
+      return callback(err("empty last_htlc_temp_address_for_htnx_private_key"));
     }
     if (this.isNotString(info.curr_temp_address_pub_key)) {
-      return callback(this.failure("empty curr_rsmc_temp_address_pub_key"));
+      return callback(err("empty curr_rsmc_temp_address_pub_key"));
     }
 
     let msg = new Message();
@@ -1989,7 +1971,7 @@ export default class ObdApi {
     this.sendData(msg, callback);
   }
 
-  public onCloseHTLCSigned(jsonData: any) {}
+  onCloseHTLCSigned(jsonData: any) {}
 
   /* ***************** close htlc tx end*****************/
 
@@ -1999,9 +1981,9 @@ export default class ObdApi {
    * @param txid string
    * @param callback function
    */
-  public getTransaction(txid: string, callback: Function) {
+  getTransaction(txid: string, callback: Function) {
     if (this.isNotString(txid)) {
-      return callback(this.failure("empty txid"));
+      return callback(err("empty txid"));
     }
     let msg = new Message();
     msg.type = this.messageType.MsgType_Core_Omni_GetTransaction_2118;
@@ -2009,28 +1991,28 @@ export default class ObdApi {
     this.sendData(msg, callback);
   }
 
-  public onGetTransaction(jsonData: any) {}
+  onGetTransaction(jsonData: any) {}
 
   /**
    * MsgType_Core_Omni_CreateNewTokenFixed_2113
    * @param info IssueFixedAmountInfo
    * @param callback function
    */
-  public issueFixedAmount(info: IssueFixedAmountInfo, callback: Function) {
+  issueFixedAmount(info: IssueFixedAmountInfo, callback: Function) {
     if (this.isNotString(info.from_address)) {
-      return callback(this.failure("empty from_address"));
+      return callback(err("empty from_address"));
     }
     if (this.isNotString(info.name)) {
-      return callback(this.failure("empty name"));
+      return callback(err("empty name"));
     }
     if (info.ecosystem == null) {
-      return callback(this.failure("empty ecosystem"));
+      return callback(err("empty ecosystem"));
     }
     if (info.divisible_type == null) {
-      return callback(this.failure("empty divisible_type"));
+      return callback(err("empty divisible_type"));
     }
     if (info.amount == null || info.amount <= 1) {
-      return callback(this.failure("wrong amount"));
+      return callback(err("wrong amount"));
     }
     if (this.isNotString(info.data)) {
       info.data = "";
@@ -2042,25 +2024,25 @@ export default class ObdApi {
     this.sendData(msg, callback);
   }
 
-  public onIssueFixedAmount(jsonData: any) {}
+  onIssueFixedAmount(jsonData: any) {}
 
   /**
    * MsgType_Core_Omni_CreateNewTokenManaged_2114
    * @param info IssueManagedAmoutInfo
    * @param callback function
    */
-  public issueManagedAmout(info: IssueManagedAmoutInfo, callback: Function) {
+  issueManagedAmout(info: IssueManagedAmoutInfo, callback: Function) {
     if (this.isNotString(info.from_address)) {
-      return callback(this.failure("empty from_address"));
+      return callback(err("empty from_address"));
     }
     if (this.isNotString(info.name)) {
-      return callback(this.failure("empty name"));
+      return callback(err("empty name"));
     }
     if (info.ecosystem == null) {
-      return callback(this.failure("empty ecosystem"));
+      return callback(err("empty ecosystem"));
     }
     if (info.divisible_type == null) {
-      return callback(this.failure("empty divisible_type"));
+      return callback(err("empty divisible_type"));
     }
     if (this.isNotString(info.data)) {
       info.data = "";
@@ -2071,22 +2053,22 @@ export default class ObdApi {
     this.sendData(msg, callback);
   }
 
-  public onIssueManagedAmout(jsonData: any) {}
+  onIssueManagedAmout(jsonData: any) {}
 
   /**
    * MsgType_Core_Omni_GrantNewUnitsOfManagedToken_2115
    * @param info OmniSendGrant
    * @param callback function
    */
-  public sendGrant(info: OmniSendGrant, callback: Function) {
+  sendGrant(info: OmniSendGrant, callback: Function) {
     if (this.isNotString(info.from_address)) {
-      return callback(this.failure("empty from_address"));
+      return callback(err("empty from_address"));
     }
     if (info.property_id == null || info.property_id < 1) {
-      return callback(this.failure("empty property_id"));
+      return callback(err("empty property_id"));
     }
     if (info.amount == null || info.amount <= 0) {
-      return callback(this.failure("wrong amount"));
+      return callback(err("wrong amount"));
     }
     if (this.isNotString(info.memo)) {
       info.memo = "";
@@ -2098,22 +2080,22 @@ export default class ObdApi {
     this.sendData(msg, callback);
   }
 
-  public onSendGrant(jsonData: any) {}
+  onSendGrant(jsonData: any) {}
 
   /**
    * MsgType_Core_Omni_RevokeUnitsOfManagedToken_2116
    * @param info OmniSendRevoke
    * @param callback function
    */
-  public sendRevoke(info: OmniSendRevoke, callback: Function) {
+  sendRevoke(info: OmniSendRevoke, callback: Function) {
     if (this.isNotString(info.from_address)) {
-      return callback(this.failure("empty from_address"));
+      return callback(err("empty from_address"));
     }
     if (info.property_id == null || info.property_id < 1) {
-      return callback(this.failure("empty property_id"));
+      return callback(err("empty property_id"));
     }
     if (info.amount == null || info.amount <= 0) {
-      return callback(this.failure("wrong amount"));
+      return callback(err("wrong amount"));
     }
     if (this.isNotString(info.memo)) {
       info.memo = "";
@@ -2124,16 +2106,16 @@ export default class ObdApi {
     this.sendData(msg, callback);
   }
 
-  public onSendRevoke(jsonData: any) {}
+  onSendRevoke(jsonData: any) {}
 
   /**
    * MsgType_Core_Omni_Getbalance_2112
    * @param address string
    * @param callback function
    */
-  public getAllBalancesForAddress(address: string, callback: Function) {
+  getAllBalancesForAddress(address: string, callback: Function) {
     if (this.isNotString(address)) {
-      return callback(this.failure("empty address"));
+      return callback(err("empty address"));
     }
     let msg = new Message();
     msg.type = this.messageType.MsgType_Core_Omni_Getbalance_2112;
@@ -2141,16 +2123,16 @@ export default class ObdApi {
     this.sendData(msg, callback);
   }
 
-  public onGetAllBalancesForAddress(jsonData: any) {}
+  onGetAllBalancesForAddress(jsonData: any) {}
 
   /**
    * MsgType_Core_Omni_GetProperty_2119
    * @param propertyId string
    * @param callback function
    */
-  public getProperty(propertyId: string, callback: Function) {
+  getProperty(propertyId: string, callback: Function) {
     if (this.isNotString(propertyId)) {
-      return callback(this.failure("empty propertyId"));
+      return callback(err("empty propertyId"));
     }
     let msg = new Message();
     msg.type = this.messageType.MsgType_Core_Omni_GetProperty_2119;
@@ -2158,16 +2140,16 @@ export default class ObdApi {
     this.sendData(msg, callback);
   }
 
-  public onGetProperty(jsonData: any) {}
+  onGetProperty(jsonData: any) {}
 
   /**
    * MsgType_Core_BalanceByAddress_2108
    * @param address string
    * @param callback function
    */
-  public getBtcBalanceByAddress(address: string, callback: Function) {
+  getBtcBalanceByAddress(address: string, callback: Function) {
     if (this.isNotString(address)) {
-      return callback(this.failure("empty address"));
+      return callback(err("empty address"));
     }
     let msg = new Message();
     msg.type = this.messageType.MsgType_Core_BalanceByAddress_2108;
@@ -2175,16 +2157,16 @@ export default class ObdApi {
     this.sendData(msg, callback);
   }
 
-  public onGetBtcBalanceByAddress(jsonData: any) {}
+  onGetBtcBalanceByAddress(jsonData: any) {}
 
   /**
    * MsgType_Core_Btc_ImportPrivKey_2111
    * @param privkey string
    * @param callback function
    */
-  public importPrivKey(privkey: string, callback: Function) {
+  importPrivKey(privkey: string, callback: Function) {
     if (this.isNotString(privkey)) {
-      return callback(this.failure("empty privkey"));
+      return callback(err("empty privkey"));
     }
     let msg = new Message();
     msg.type = this.messageType.MsgType_Core_Btc_ImportPrivKey_2111;
@@ -2192,40 +2174,40 @@ export default class ObdApi {
     this.sendData(msg, callback);
   }
 
-  public onImportPrivKey(jsonData: any) {}
+  onImportPrivKey(jsonData: any) {}
 
   /**
    * MsgType_HTLC_CreatedRAndHInfoList_N4001
    * @param callback function
    */
-  public getAddHTLCRandHInfoList(callback: Function) {
+  getAddHTLCRandHInfoList(callback: Function) {
     let msg = new Message();
     // msg.type = this.messageType.MsgType_HTLC_CreatedRAndHInfoList_N4001;
     this.sendData(msg, callback);
   }
 
-  public onGetAddHTLCRandHInfoList(jsonData: any) {}
+  onGetAddHTLCRandHInfoList(jsonData: any) {}
 
   /**
    * MsgType_HTLC_SignedRAndHInfoList_N4101
    * @param callback function
    */
-  public getHtlcSignedRandHInfoList(callback: Function) {
+  getHtlcSignedRandHInfoList(callback: Function) {
     let msg = new Message();
     // msg.type = this.messageType.MsgType_HTLC_SignedRAndHInfoList_N4101;
     this.sendData(msg, callback);
   }
 
-  public onGetHtlcSignedRandHInfoList(jsonData: any) {}
+  onGetHtlcSignedRandHInfoList(jsonData: any) {}
 
   /**
    * MsgType_HTLC_GetRFromLCommitTx_N4103
    * @param channel_id string
    * @param callback function
    */
-  public getRFromCommitmentTx(channel_id: string, callback: Function) {
+  getRFromCommitmentTx(channel_id: string, callback: Function) {
     if (this.isNotString(channel_id)) {
-      return callback(this.failure("empty channel_id"));
+      return callback(err("empty channel_id"));
     }
     let msg = new Message();
     // msg.type = this.messageType.MsgType_HTLC_GetRFromLCommitTx_N4103;
@@ -2233,16 +2215,16 @@ export default class ObdApi {
     this.sendData(msg, callback);
   }
 
-  public onGetRFromCommitmentTx(jsonData: any) {}
+  onGetRFromCommitmentTx(jsonData: any) {}
 
   /**
    * MsgType_HTLC_GetPathInfoByH_N4104
    * @param h string
    * @param callback function
    */
-  public getPathInfoByH(h: string, callback: Function) {
+  getPathInfoByH(h: string, callback: Function) {
     if (this.isNotString(h)) {
-      return callback(this.failure("empty h"));
+      return callback(err("empty h"));
     }
     let msg = new Message();
     // msg.type = this.messageType.MsgType_HTLC_GetPathInfoByH_N4104;
@@ -2250,16 +2232,16 @@ export default class ObdApi {
     this.sendData(msg, callback);
   }
 
-  public onGetPathInfoByH(jsonData: any) {}
+  onGetPathInfoByH(jsonData: any) {}
 
   /**
    * MsgType_HTLC_GetRInfoByHOfOwner_N4105
    * @param h string
    * @param callback function
    */
-  public getRByHOfReceiver(h: string, callback: Function) {
+  getRByHOfReceiver(h: string, callback: Function) {
     if (this.isNotString(h)) {
-      return callback(this.failure("empty h"));
+      return callback(err("empty h"));
     }
     let msg = new Message();
     // msg.type = this.messageType.MsgType_HTLC_GetRInfoByHOfOwner_N4105;
@@ -2267,19 +2249,16 @@ export default class ObdApi {
     this.sendData(msg, callback);
   }
 
-  public onGetRByHOfReceiver(jsonData: any) {}
+  onGetRByHOfReceiver(jsonData: any) {}
 
   /**
    * MsgType_CommitmentTx_LatestCommitmentTxByChanId_3203
    * @param channel_id string
    * @param callback function
    */
-  public getLatestCommitmentTransaction(
-    channel_id: string,
-    callback: Function
-  ) {
+  getLatestCommitmentTransaction(channel_id: string, callback: Function) {
     if (this.isNotString(channel_id)) {
-      return callback(this.failure("empty channel_id"));
+      return callback(err("empty channel_id"));
     }
     let msg = new Message();
     msg.type = this.messageType.MsgType_CommitmentTx_LatestCommitmentTxByChanId_3203;
@@ -2287,16 +2266,16 @@ export default class ObdApi {
     this.sendData(msg, callback);
   }
 
-  public onGetLatestCommitmentTransaction(jsonData: any) {}
+  onGetLatestCommitmentTransaction(jsonData: any) {}
 
   /**
    * MsgType_CommitmentTx_ItemsByChanId_3200
    * @param channel_id string
    * @param callback function
    */
-  public getItemsByChannelId(channel_id: string, callback: Function) {
+  getItemsByChannelId(channel_id: string, callback: Function) {
     if (this.isNotString(channel_id)) {
-      return callback(this.failure("empty channel_id"));
+      return callback(err("empty channel_id"));
     }
     let msg = new Message();
     msg.type = this.messageType.MsgType_CommitmentTx_ItemsByChanId_3200;
@@ -2304,7 +2283,7 @@ export default class ObdApi {
     this.sendData(msg, callback);
   }
 
-  public onGetItemsByChannelId(jsonData: any) {}
+  onGetItemsByChannelId(jsonData: any) {}
 
   /**
    * MsgType_ChannelOpen_AllItem_3150
@@ -2312,11 +2291,7 @@ export default class ObdApi {
    * @param page_index Number
    * @param callback function
    */
-  public getMyChannels(
-    page_size: Number,
-    page_index: Number,
-    callback: Function
-  ) {
+  getMyChannels(page_size: Number, page_index: Number, callback: Function) {
     if (page_size == null || page_size <= 0) {
       page_size = 10;
     }
@@ -2332,28 +2307,28 @@ export default class ObdApi {
     this.sendData(msg, callback);
   }
 
-  public onGetMyChannels(jsonData: any) {}
+  onGetMyChannels(jsonData: any) {}
 
   /**
    * MsgType_GetMiniBtcFundAmount_2006
    * @param callback function
    */
-  public getAmountOfRechargeBTC(callback: Function) {
+  getAmountOfRechargeBTC(callback: Function) {
     let msg = new Message();
     msg.type = this.messageType.MsgType_GetMiniBtcFundAmount_2006;
     this.sendData(msg, callback);
   }
 
-  public onGetAmountOfRechargeBTC(jsonData: any) {}
+  onGetAmountOfRechargeBTC(jsonData: any) {}
 
   /**
    * MsgType_GetChannelInfoByChannelId_3154
    * @param channel_id string
    * @param callback function
    */
-  public getChannelDetailFromChannelID(channel_id: string, callback: Function) {
+  getChannelDetailFromChannelID(channel_id: string, callback: Function) {
     if (this.isNotString(channel_id)) {
-      return callback(this.failure("empty channel_id"));
+      return callback(err("empty channel_id"));
     }
     let msg = new Message();
     msg.type = this.messageType.MsgType_GetChannelInfoByChannelId_3154;
@@ -2362,16 +2337,16 @@ export default class ObdApi {
     this.sendData(msg, callback);
   }
 
-  public onGetChannelDetailFromChannelID(jsonData: any) {}
+  onGetChannelDetailFromChannelID(jsonData: any) {}
 
   /**
    * MsgType_GetChannelInfoByDbId_3155
    * @param id number
    * @param callback function
    */
-  public getChannelDetailFromDatabaseID(id: number, callback: Function) {
+  getChannelDetailFromDatabaseID(id: number, callback: Function) {
     if (id == null || id <= 0) {
-      return callback(this.failure("error id"));
+      return callback(err("error id"));
     }
     let msg = new Message();
     msg.type = this.messageType.MsgType_GetChannelInfoByDbId_3155;
@@ -2379,19 +2354,16 @@ export default class ObdApi {
     this.sendData(msg, callback);
   }
 
-  public onGetChannelDetailFromDatabaseID(jsonData: any) {}
+  onGetChannelDetailFromDatabaseID(jsonData: any) {}
 
   /**
    * MsgType_CommitmentTx_AllBRByChanId_3208
    * @param channel_id string
    * @param callback function
    */
-  public getAllBreachRemedyTransactions(
-    channel_id: string,
-    callback: Function
-  ) {
+  getAllBreachRemedyTransactions(channel_id: string, callback: Function) {
     if (this.isNotString(channel_id)) {
-      return callback(this.failure("empty channel_id"));
+      return callback(err("empty channel_id"));
     }
     let msg = new Message();
     msg.type = this.messageType.MsgType_CommitmentTx_AllBRByChanId_3208;
@@ -2399,16 +2371,16 @@ export default class ObdApi {
     this.sendData(msg, callback);
   }
 
-  public onGetAllBreachRemedyTransactions(jsonData: any) {}
+  onGetAllBreachRemedyTransactions(jsonData: any) {}
 
   /**
    * MsgType_CommitmentTx_ItemsByChanId_3200
    * @param channel_id string
    * @param callback function
    */
-  public getAllCommitmentTx(channel_id: string, callback: Function) {
+  getAllCommitmentTx(channel_id: string, callback: Function) {
     if (this.isNotString(channel_id)) {
-      return callback(this.failure("empty channel_id"));
+      return callback(err("empty channel_id"));
     }
     let msg = new Message();
     msg.type = this.messageType.MsgType_CommitmentTx_ItemsByChanId_3200;
@@ -2416,19 +2388,19 @@ export default class ObdApi {
     this.sendData(msg, callback);
   }
 
-  public onGetAllCommitmentTx(jsonData: any) {}
+  onGetAllCommitmentTx(jsonData: any) {}
 
   /**
    * MsgType_CommitmentTx_LatestRDByChanId_3204
    * @param channel_id string
    * @param callback function
    */
-  public getLatestRevockableDeliveryTransaction(
+  getLatestRevockableDeliveryTransaction(
     channel_id: string,
     callback: Function
   ) {
     if (this.isNotString(channel_id)) {
-      return callback(this.failure("empty channel_id"));
+      return callback(err("empty channel_id"));
     }
     let msg = new Message();
     msg.type = this.messageType.MsgType_CommitmentTx_LatestRDByChanId_3204;
@@ -2436,19 +2408,16 @@ export default class ObdApi {
     this.sendData(msg, callback);
   }
 
-  public onGetLatestRevockableDeliveryTransaction(jsonData: any) {}
+  onGetLatestRevockableDeliveryTransaction(jsonData: any) {}
 
   /**
    * MsgType_CommitmentTx_LatestBRByChanId_3205
    * @param channel_id string
    * @param callback function
    */
-  public getLatestBreachRemedyTransaction(
-    channel_id: string,
-    callback: Function
-  ) {
+  getLatestBreachRemedyTransaction(channel_id: string, callback: Function) {
     if (this.isNotString(channel_id)) {
-      return callback(this.failure("empty channel_id"));
+      return callback(err("empty channel_id"));
     }
     let msg = new Message();
     msg.type = this.messageType.MsgType_CommitmentTx_LatestBRByChanId_3205;
@@ -2456,16 +2425,16 @@ export default class ObdApi {
     this.sendData(msg, callback);
   }
 
-  public onGetLatestBreachRemedyTransaction(jsonData: any) {}
+  onGetLatestBreachRemedyTransaction(jsonData: any) {}
 
   /**
    * MsgType_CommitmentTx_SendSomeCommitmentById_3206
    * @param id number
    * @param callback function
    */
-  public sendSomeCommitmentById(id: number, callback: Function) {
+  sendSomeCommitmentById(id: number, callback: Function) {
     if (id == null || id < 0) {
-      return callback(this.failure("error id"));
+      return callback(err("error id"));
     }
     let msg = new Message();
     msg.type = this.messageType.MsgType_CommitmentTx_SendSomeCommitmentById_3206;
@@ -2473,19 +2442,16 @@ export default class ObdApi {
     this.sendData(msg, callback);
   }
 
-  public onSendSomeCommitmentById(jsonData: any) {}
+  onSendSomeCommitmentById(jsonData: any) {}
 
   /**
    * MsgType_CommitmentTx_AllRDByChanId_3207
    * @param channel_id string
    * @param callback function
    */
-  public getAllRevockableDeliveryTransactions(
-    channel_id: string,
-    callback: Function
-  ) {
+  getAllRevockableDeliveryTransactions(channel_id: string, callback: Function) {
     if (this.isNotString(channel_id)) {
-      return callback(this.failure("empty channel_id"));
+      return callback(err("empty channel_id"));
     }
     let msg = new Message();
     msg.type = this.messageType.MsgType_CommitmentTx_AllRDByChanId_3207;
@@ -2493,7 +2459,7 @@ export default class ObdApi {
     this.sendData(msg, callback);
   }
 
-  public onGetAllRevockableDeliveryTransactions(jsonData: any) {}
+  onGetAllRevockableDeliveryTransactions(jsonData: any) {}
 
   /**
    * MsgType_SendCloseChannelRequest_38
@@ -2502,22 +2468,22 @@ export default class ObdApi {
    * @param channel_id string
    * @param callback function
    */
-  public closeChannel(
+  closeChannel(
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     channel_id: string,
     callback: Function
   ) {
     if (this.isNotString(recipient_node_peer_id)) {
-      return callback(this.failure("error recipient_node_peer_id"));
+      return callback(err("error recipient_node_peer_id"));
     }
 
     if (this.isNotString(recipient_user_peer_id)) {
-      return callback(this.failure("error recipient_user_peer_id"));
+      return callback(err("error recipient_user_peer_id"));
     }
 
     if (this.isNotString(channel_id)) {
-      return callback(this.failure("empty channel_id"));
+      return callback(err("empty channel_id"));
     }
     let msg = new Message();
     msg.type = this.messageType.MsgType_SendCloseChannelRequest_38;
@@ -2527,7 +2493,7 @@ export default class ObdApi {
     this.sendData(msg, callback);
   }
 
-  public onCloseChannel(jsonData: any) {}
+  onCloseChannel(jsonData: any) {}
 
   /**
    * MsgType_SendCloseChannelSign_39
@@ -2536,22 +2502,22 @@ export default class ObdApi {
    * @param info CloseChannelSign
    * @param callback function
    */
-  public closeChannelSigned(
+  closeChannelSigned(
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: CloseChannelSign,
     callback: Function
   ) {
     if (this.isNotString(recipient_node_peer_id)) {
-      return callback(this.failure("error recipient_node_peer_id"));
+      return callback(err("error recipient_node_peer_id"));
     }
 
     if (this.isNotString(recipient_user_peer_id)) {
-      return callback(this.failure("error recipient_user_peer_id"));
+      return callback(err("error recipient_user_peer_id"));
     }
 
     if (this.isNotString(info.channel_id)) {
-      return callback(this.failure("empty channel_id"));
+      return callback(err("empty channel_id"));
     }
 
     if (info.approval == null) {
@@ -2560,7 +2526,7 @@ export default class ObdApi {
 
     if (info.approval) {
       if (this.isNotString(info.request_close_channel_hash)) {
-        return callback(this.failure("empty request_close_channel_hash"));
+        return callback(err("empty request_close_channel_hash"));
       }
     }
 
@@ -2572,7 +2538,7 @@ export default class ObdApi {
     this.sendData(msg, callback);
   }
 
-  public onCloseChannelSigned(jsonData: any) {}
+  onCloseChannelSigned(jsonData: any) {}
 
   /**
    * MsgType_Atomic_SendSwap_80
@@ -2581,44 +2547,44 @@ export default class ObdApi {
    * @param info AtomicSwapRequest
    * @param callback function
    */
-  public atomicSwap(
+  atomicSwap(
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: AtomicSwapRequest,
     callback: Function
   ) {
     if (this.isNotString(recipient_node_peer_id)) {
-      return callback(this.failure("error recipient_node_peer_id"));
+      return callback(err("error recipient_node_peer_id"));
     }
 
     if (this.isNotString(recipient_user_peer_id)) {
-      return callback(this.failure("error recipient_user_peer_id"));
+      return callback(err("error recipient_user_peer_id"));
     }
 
     if (this.isNotString(info.channel_id_from)) {
-      return callback(this.failure("empty channel_id_from"));
+      return callback(err("empty channel_id_from"));
     }
     if (this.isNotString(info.channel_id_to)) {
-      return callback(this.failure("empty channel_id_to"));
+      return callback(err("empty channel_id_to"));
     }
     if (this.isNotString(info.recipient_user_peer_id)) {
-      return callback(this.failure("empty recipient_user_peer_id"));
+      return callback(err("empty recipient_user_peer_id"));
     }
     if (this.isNotString(info.transaction_id)) {
-      return callback(this.failure("empty transaction_id"));
+      return callback(err("empty transaction_id"));
     }
 
     if (info.property_sent <= 0) {
-      return callback(this.failure("wrong property_sent"));
+      return callback(err("wrong property_sent"));
     }
     if (info.amount <= 0) {
-      return callback(this.failure("wrong amount"));
+      return callback(err("wrong amount"));
     }
     if (info.exchange_rate <= 0) {
-      return callback(this.failure("wrong exchange_rate"));
+      return callback(err("wrong exchange_rate"));
     }
     if (info.property_received <= 0) {
-      return callback(this.failure("wrong property_received"));
+      return callback(err("wrong property_received"));
     }
 
     let msg = new Message();
@@ -2636,46 +2602,46 @@ export default class ObdApi {
    * @param info AtomicSwapAccepted
    * @param callback function
    */
-  public atomicSwapAccepted(
+  atomicSwapAccepted(
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: AtomicSwapAccepted,
     callback: Function
   ) {
     if (this.isNotString(recipient_node_peer_id)) {
-      return callback(this.failure("error recipient_node_peer_id"));
+      return callback(err("error recipient_node_peer_id"));
     }
 
     if (this.isNotString(recipient_user_peer_id)) {
-      return callback(this.failure("error recipient_user_peer_id"));
+      return callback(err("error recipient_user_peer_id"));
     }
 
     if (this.isNotString(info.channel_id_from)) {
-      return callback(this.failure("empty channel_id_from"));
+      return callback(err("empty channel_id_from"));
     }
     if (this.isNotString(info.channel_id_to)) {
-      return callback(this.failure("empty channel_id_to"));
+      return callback(err("empty channel_id_to"));
     }
     if (this.isNotString(info.recipient_user_peer_id)) {
-      return callback(this.failure("empty recipient_user_peer_id"));
+      return callback(err("empty recipient_user_peer_id"));
     }
     if (this.isNotString(info.transaction_id)) {
-      return callback(this.failure("empty transaction_id"));
+      return callback(err("empty transaction_id"));
     }
     if (this.isNotString(info.target_transaction_id)) {
-      return callback(this.failure("empty target_transaction_id"));
+      return callback(err("empty target_transaction_id"));
     }
     if (info.property_sent <= 0) {
-      return callback(this.failure("wrong property_sent"));
+      return callback(err("wrong property_sent"));
     }
     if (info.amount <= 0) {
-      return callback(this.failure("wrong amount"));
+      return callback(err("wrong amount"));
     }
     if (info.exchange_rate <= 0) {
-      return callback(this.failure("wrong exchange_rate"));
+      return callback(err("wrong exchange_rate"));
     }
     if (info.property_received <= 0) {
-      return callback(this.failure("wrong property_received"));
+      return callback(err("wrong property_received"));
     }
 
     let msg = new Message();
@@ -2686,7 +2652,7 @@ export default class ObdApi {
     this.sendData(msg, callback);
   }
 
-  private isNotString(str: String): boolean {
+  isNotString(str: String): boolean {
     if (str == null) {
       return true;
     }
