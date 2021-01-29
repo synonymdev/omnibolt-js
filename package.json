@@ -8,7 +8,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "npm run format && tsc",
     "format": "prettier --write \"src/*.ts\" \"*.js\"",
-    "lint": "eslint .",
+    "lint": "eslint . --ext .ts,.tsx --fix",
     "prepublish": "tsc"
   },
   "types": "lib/types/index.d.ts",
