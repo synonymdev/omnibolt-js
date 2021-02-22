@@ -238,12 +238,12 @@ export default class ObdApi {
    */
   sendJsonData(msg: string, type: number, callback: Function) {
     if (!this.isConnectedToOBD) {
-      alert("please try to connect obd again");
+      console.log("please try to connect obd again");
       return;
     }
 
     if (this.isNotString(msg)) {
-      alert("error request content.");
+      console.log("error request content.");
       return;
     }
 
@@ -313,7 +313,7 @@ export default class ObdApi {
 
   sendData(msg: Message, callback: Function) {
     if (!this.isConnectedToOBD) {
-      alert("please try to connect obd again");
+      console.log("please try to connect obd again");
       return;
     }
 
@@ -484,9 +484,7 @@ export default class ObdApi {
    * MsgType_UserLogin_2001
    * @param mnemonic string
    */
-  async logIn(
-    mnemonic: string,
-  ): Promise<Result<string>> {
+  async logIn(mnemonic: string): Promise<Result<string>> {
     if (this.isLoggedIn) {
       return ok("You are already logged in!");
     }
@@ -1309,11 +1307,9 @@ export default class ObdApi {
         return err("wrong amount");
       }
       if (this.isNotString(info.h)) {
-        alert("empty h");
         return err("empty h");
       }
       if (this.isNotString(info.expiry_time)) {
-        alert("empty expiry_time");
         return err("empty expiry_time");
       }
     } else if (this.isNotString(info.invoice)) {
