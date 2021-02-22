@@ -206,6 +206,7 @@ export declare class HTLCFindPathInfo extends InvoiceInfo {
     invoice: string;
     recipient_node_peer_id: string;
     recipient_user_peer_id: string;
+    is_inv_pay: boolean;
 }
 export declare class addHTLCInfo {
     recipient_user_peer_id: string;
