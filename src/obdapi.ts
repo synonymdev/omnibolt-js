@@ -1305,7 +1305,7 @@ export default class ObdApi {
    * @param info HTLCFindPathInfo
    */
   async HTLCFindPath(info: HTLCFindPathInfo) {
-    if (!info?.is_inv_pay) {
+    if (!info.is_inv_pay) {
       if (info.property_id == null || info.property_id <= 0) {
         return err("empty property_id");
       }
