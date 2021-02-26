@@ -53,7 +53,8 @@ import {
   IAcceptChannel,
   IConnect,
   IGetMyChannels,
-  IOnChannelOpenAttempt
+  IOnChannelOpenAttempt,
+  ILogin
 } from "./types";
 
 const DEFAULT_URL = "62.234.216.108:60020";
@@ -489,9 +490,9 @@ export default class ObdApi {
    * MsgType_UserLogin_2001
    * @param mnemonic string
    */
-  async logIn(mnemonic: string): Promise<Result<string>> {
+  async logIn(mnemonic: string): Promise<Result<ILogin>> {
     if (this.isLoggedIn) {
-      return ok("You are already logged in!");
+      return err("You are already logged in!");
     }
 
     if (this.isNotString(mnemonic)) {

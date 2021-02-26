@@ -1,6 +1,6 @@
 import { MessageType, Message, P2PPeer, BtcFundingInfo, FundingBtcCreated, FundingBtcSigned, OmniFundingAssetInfo, OmniSendAssetInfo, OpenChannelInfo, AcceptChannelInfo, AssetFundingCreatedInfo, AssetFundingSignedInfo, SignedInfo100100, SignedInfo100101, SignedInfo100102, SignedInfo100103, SignedInfo100104, SignedInfo100105, SignedInfo100106, SignedInfo100110, SignedInfo100111, SignedInfo100112, SignedInfo100113, SignedInfo100114, SignedInfo100360, SignedInfo100361, SignedInfo100362, SignedInfo100363, SignedInfo100364, SignedInfo101035, SignedInfo101134, CommitmentTx, CommitmentTxSigned, InvoiceInfo, HTLCFindPathInfo, addHTLCInfo, HtlcSignedInfo, ForwardRInfo, SignRInfo, CloseHtlcTxInfo, CloseHtlcTxInfoSigned, IssueFixedAmountInfo, IssueManagedAmoutInfo, OmniSendGrant, OmniSendRevoke, CloseChannelSign, AtomicSwapAccepted, AtomicSwapRequest } from "./pojo";
 import { Result } from "./result";
-import { IAcceptChannel, IConnect, IGetMyChannels, IOnChannelOpenAttempt } from "./types";
+import { IAcceptChannel, IConnect, IGetMyChannels, IOnChannelOpenAttempt, ILogin } from "./types";
 export default class ObdApi {
     constructor({ url }?: {
         url?: string | undefined;
@@ -43,7 +43,7 @@ export default class ObdApi {
     connectToServer(url: string, callback: Function, globalCallback: Function): import("./result").Err<unknown> | undefined;
     sendData(msg: Message, callback: Function): Result<any>;
     getDataFromServer(jsonData: any): any;
-    logIn(mnemonic: string): Promise<Result<string>>;
+    logIn(mnemonic: string): Promise<Result<ILogin>>;
     userPeerId: string;
     onLogIn(resultData: any): void;
     disconnect(): void;
