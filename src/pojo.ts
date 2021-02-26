@@ -42,14 +42,14 @@ export class OmniSendAssetInfo {
 
 export class OpenChannelInfo {
   funding_pubkey: string = "";
-  funder_address_index: number = 0;
+  //funder_address_index: number = 0;
   is_private: boolean = false;
 }
 
 export class AcceptChannelInfo {
   temporary_channel_id: string = "";
   funding_pubkey: string = "";
-  fundee_address_index: number = 0;
+  //fundee_address_index: number = 0;
   approval: boolean = false;
 }
 

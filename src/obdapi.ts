@@ -49,7 +49,7 @@ import {
   AtomicSwapRequest
 } from "./pojo";
 import { err, ok, Result } from "./result";
-import { IConnect } from "./types";
+import { IAcceptChannel, IConnect, IOnChannelOpenAttempt } from "./types";
 
 const DEFAULT_URL = "62.234.216.108:60020";
 
@@ -66,7 +66,7 @@ export default class ObdApi {
   globalCallback: Function | undefined;
   callbackMap: Map<number, Function> = new Map<number, Function>();
   onMessage: Function | undefined;
-  onChannelOpenAttempt: Function | undefined;
+  onChannelOpenAttempt: ((data: IOnChannelOpenAttempt) => any) | undefined;
   onBitcoinFundingCreated: Function | undefined;
   onChannelClose: Function | undefined;
   onAssetFundingCreated: Function | undefined;
@@ -779,7 +779,7 @@ export default class ObdApi {
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: OpenChannelInfo
-  ) {
+  ): Promise<Result<string>> {
     if (this.isNotString(recipient_node_peer_id)) {
       return err("error recipient_node_peer_id");
     }
@@ -816,7 +816,7 @@ export default class ObdApi {
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: AcceptChannelInfo
-  ) {
+  ): Promise<Result<IAcceptChannel>> {
     if (this.isNotString(recipient_node_peer_id)) {
       return err("error recipient_node_peer_id");
     }

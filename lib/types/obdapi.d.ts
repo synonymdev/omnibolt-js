@@ -1,6 +1,6 @@
 import { MessageType, Message, P2PPeer, BtcFundingInfo, FundingBtcCreated, FundingBtcSigned, OmniFundingAssetInfo, OmniSendAssetInfo, OpenChannelInfo, AcceptChannelInfo, AssetFundingCreatedInfo, AssetFundingSignedInfo, SignedInfo100100, SignedInfo100101, SignedInfo100102, SignedInfo100103, SignedInfo100104, SignedInfo100105, SignedInfo100106, SignedInfo100110, SignedInfo100111, SignedInfo100112, SignedInfo100113, SignedInfo100114, SignedInfo100360, SignedInfo100361, SignedInfo100362, SignedInfo100363, SignedInfo100364, SignedInfo101035, SignedInfo101134, CommitmentTx, CommitmentTxSigned, InvoiceInfo, HTLCFindPathInfo, addHTLCInfo, HtlcSignedInfo, ForwardRInfo, SignRInfo, CloseHtlcTxInfo, CloseHtlcTxInfoSigned, IssueFixedAmountInfo, IssueManagedAmoutInfo, OmniSendGrant, OmniSendRevoke, CloseChannelSign, AtomicSwapAccepted, AtomicSwapRequest } from "./pojo";
 import { Result } from "./result";
-import { IConnect } from "./types";
+import { IAcceptChannel, IConnect, IOnChannelOpenAttempt } from "./types";
 export default class ObdApi {
     constructor({ url }?: {
         url?: string | undefined;
@@ -13,7 +13,7 @@ export default class ObdApi {
     globalCallback: Function | undefined;
     callbackMap: Map<number, Function>;
     onMessage: Function | undefined;
-    onChannelOpenAttempt: Function | undefined;
+    onChannelOpenAttempt: ((data: IOnChannelOpenAttempt) => any) | undefined;
     onBitcoinFundingCreated: Function | undefined;
     onChannelClose: Function | undefined;
     onAssetFundingCreated: Function | undefined;
@@ -65,9 +65,9 @@ export default class ObdApi {
     onGenAddressFromMnemonic(jsonData: any): void;
     getAddressInfo(index: number): Promise<unknown>;
     onGetAddressInfo(jsonData: any): void;
-    openChannel(recipient_node_peer_id: string, recipient_user_peer_id: string, info: OpenChannelInfo): Promise<unknown>;
+    openChannel(recipient_node_peer_id: string, recipient_user_peer_id: string, info: OpenChannelInfo): Promise<Result<string>>;
     onOpenChannel(jsonData: any): void;
-    acceptChannel(recipient_node_peer_id: string, recipient_user_peer_id: string, info: AcceptChannelInfo): Promise<unknown>;
+    acceptChannel(recipient_node_peer_id: string, recipient_user_peer_id: string, info: AcceptChannelInfo): Promise<Result<IAcceptChannel>>;
     onAcceptChannel(jsonData: any): void;
     checkChannelAddessExist(recipient_node_peer_id: string, recipient_user_peer_id: string, info: AcceptChannelInfo): Promise<unknown>;
     onCheckChannelAddessExist(jsonData: any): void;

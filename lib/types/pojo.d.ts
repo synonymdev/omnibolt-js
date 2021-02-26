@@ -36,13 +36,11 @@ export declare class OmniSendAssetInfo {
 }
 export declare class OpenChannelInfo {
     funding_pubkey: string;
-    funder_address_index: number;
     is_private: boolean;
 }
 export declare class AcceptChannelInfo {
     temporary_channel_id: string;
     funding_pubkey: string;
-    fundee_address_index: number;
     approval: boolean;
 }
 export declare class AssetFundingCreatedInfo {
