@@ -49,7 +49,12 @@ import {
   AtomicSwapRequest
 } from "./pojo";
 import { err, ok, Result } from "./result";
-import { IAcceptChannel, IConnect, IOnChannelOpenAttempt } from "./types";
+import {
+  IAcceptChannel,
+  IConnect,
+  IGetMyChannels,
+  IOnChannelOpenAttempt
+} from "./types";
 
 const DEFAULT_URL = "62.234.216.108:60020";
 
@@ -311,10 +316,10 @@ export default class ObdApi {
     }
   }
 
-  sendData(msg: Message, callback: Function) {
+  // @ts-ignore
+  sendData(msg: Message, callback: Function): Result<any> {
     if (!this.isConnectedToOBD) {
-      console.log("please try to connect obd again");
-      return;
+      return err("please try to connect obd again");
     }
 
     if (
@@ -530,14 +535,14 @@ export default class ObdApi {
    * MsgType_p2p_ConnectPeer_2003
    * @param info P2PPeer
    */
-  async connectPeer(info: P2PPeer) {
+  async connectPeer(info: P2PPeer): Promise<Result<string>> {
     if (this.isNotString(info.remote_node_address)) {
       return err("Empty remote_node_address");
     }
     let msg = new Message();
     msg.data = info;
     msg.type = this.messageType.MsgType_p2p_ConnectPeer_2003;
-    return new Promise(async (resolve) => this.sendData(msg, resolve));
+    return new Promise((resolve) => this.sendData(msg, resolve));
   }
 
   /**
@@ -2191,7 +2196,10 @@ export default class ObdApi {
    * @param page_size Number
    * @param page_index Number
    */
-  async getMyChannels(page_size: Number, page_index: Number) {
+  async getMyChannels(
+    page_size?: Number,
+    page_index?: Number
+  ): Promise<Result<IGetMyChannels>> {
     if (page_size == null || page_size <= 0) {
       page_size = 10;
     }
@@ -2204,7 +2212,10 @@ export default class ObdApi {
     msg.type = this.messageType.MsgType_ChannelOpen_AllItem_3150;
     msg.data["page_size"] = page_size;
     msg.data["page_index"] = page_index;
-    return new Promise(async (resolve) => this.sendData(msg, resolve));
+    return new Promise(
+      async (resolve): Promise<Result<IGetMyChannels>> =>
+        this.sendData(msg, resolve)
+    );
   }
 
   onGetMyChannels(jsonData: any) {}
