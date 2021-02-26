@@ -1918,7 +1918,7 @@ export default class ObdApi {
    * MsgType_Core_Omni_CreateNewTokenFixed_2113
    * @param info IssueFixedAmountInfo
    */
-  async issueFixedAmount(info: IssueFixedAmountInfo) {
+  async issueFixedAmount(info: IssueFixedAmountInfo): Promise<Result<unknown>> {
     if (this.isNotString(info.from_address)) {
       return err("empty from_address");
     }

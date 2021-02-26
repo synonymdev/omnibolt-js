@@ -116,7 +116,7 @@ export default class ObdApi {
     onCloseHTLCSigned(jsonData: any): void;
     getTransaction(txid: string): Promise<unknown>;
     onGetTransaction(jsonData: any): void;
-    issueFixedAmount(info: IssueFixedAmountInfo): Promise<unknown>;
+    issueFixedAmount(info: IssueFixedAmountInfo): Promise<Result<unknown>>;
     onIssueFixedAmount(jsonData: any): void;
     issueManagedAmout(info: IssueManagedAmoutInfo): Promise<unknown>;
     onIssueManagedAmout(jsonData: any): void;
