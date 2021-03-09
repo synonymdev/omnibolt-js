@@ -1,6 +1,6 @@
 import { MessageType, Message, P2PPeer, BtcFundingInfo, FundingBtcCreated, FundingBtcSigned, OmniFundingAssetInfo, OmniSendAssetInfo, OpenChannelInfo, AcceptChannelInfo, AssetFundingCreatedInfo, AssetFundingSignedInfo, SignedInfo100100, SignedInfo100101, SignedInfo100102, SignedInfo100103, SignedInfo100104, SignedInfo100105, SignedInfo100106, SignedInfo100110, SignedInfo100111, SignedInfo100112, SignedInfo100113, SignedInfo100114, SignedInfo100360, SignedInfo100361, SignedInfo100362, SignedInfo100363, SignedInfo100364, SignedInfo101035, SignedInfo101134, CommitmentTx, CommitmentTxSigned, InvoiceInfo, HTLCFindPathInfo, addHTLCInfo, HtlcSignedInfo, ForwardRInfo, SignRInfo, CloseHtlcTxInfo, CloseHtlcTxInfoSigned, IssueFixedAmountInfo, IssueManagedAmoutInfo, OmniSendGrant, OmniSendRevoke, CloseChannelSign, AtomicSwapAccepted, AtomicSwapRequest } from "./pojo";
 import { Result } from "./result";
-import { IAcceptChannel, IConnect, IGetMyChannels, IOnChannelOpenAttempt, ILogin } from "./types";
+import { IAcceptChannel, IConnect, IGetMyChannels, IOnChannelOpenAttempt, ILogin, IFundingBitcoin } from "./types";
 export default class ObdApi {
     constructor({ url }?: {
         url?: string | undefined;
@@ -14,6 +14,7 @@ export default class ObdApi {
     callbackMap: Map<number, Function>;
     onMessage: Function | undefined;
     onChannelOpenAttempt: ((data: IOnChannelOpenAttempt) => any) | undefined;
+    onAcceptChannel: ((data: any) => any) | undefined;
     onBitcoinFundingCreated: Function | undefined;
     onChannelClose: Function | undefined;
     onAssetFundingCreated: Function | undefined;
@@ -22,11 +23,12 @@ export default class ObdApi {
         nodePeerId: string;
         userPeerId: string;
     };
-    connect({ url, onOpen, onMessage, onChannelOpenAttempt, onBitcoinFundingCreated, onAssetFundingCreated, onChannelClose, onError, onClose, onAddHTLC, onForwardR, onSignR, onCloseHTLC }?: {
+    connect({ url, onOpen, onMessage, onChannelOpenAttempt, onAcceptChannel, onBitcoinFundingCreated, onAssetFundingCreated, onChannelClose, onError, onClose, onAddHTLC, onForwardR, onSignR, onCloseHTLC }?: {
         url?: string | undefined;
         onOpen?: (() => any) | undefined;
         onMessage?: undefined;
         onChannelOpenAttempt?: undefined;
+        onAcceptChannel?: undefined;
         onBitcoinFundingCreated?: undefined;
         onAssetFundingCreated?: undefined;
         onChannelClose?: undefined;
@@ -50,7 +52,7 @@ export default class ObdApi {
     logout(): Promise<unknown>;
     onLogout(jsonData: any): void;
     connectPeer(info: P2PPeer): Promise<Result<string>>;
-    fundingBitcoin(info: BtcFundingInfo): Promise<unknown>;
+    fundingBitcoin(info: BtcFundingInfo): Promise<Result<IFundingBitcoin>>;
     onFundingBitcoin(jsonData: any): void;
     bitcoinFundingCreated(recipient_node_peer_id: string, recipient_user_peer_id: string, info: FundingBtcCreated): Promise<unknown>;
     sendSignedHex100341(recipient_node_peer_id: string, recipient_user_peer_id: string, signed_hex: string): Promise<unknown>;
@@ -68,7 +70,6 @@ export default class ObdApi {
     openChannel(recipient_node_peer_id: string, recipient_user_peer_id: string, info: OpenChannelInfo): Promise<Result<string>>;
     onOpenChannel(jsonData: any): void;
     acceptChannel(recipient_node_peer_id: string, recipient_user_peer_id: string, info: AcceptChannelInfo): Promise<Result<IAcceptChannel>>;
-    onAcceptChannel(jsonData: any): void;
     checkChannelAddessExist(recipient_node_peer_id: string, recipient_user_peer_id: string, info: AcceptChannelInfo): Promise<unknown>;
     onCheckChannelAddessExist(jsonData: any): void;
     assetFundingCreated(recipient_node_peer_id: string, recipient_user_peer_id: string, info: AssetFundingCreatedInfo): Promise<unknown>;

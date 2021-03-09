@@ -54,7 +54,8 @@ import {
   IConnect,
   IGetMyChannels,
   IOnChannelOpenAttempt,
-  ILogin
+  ILogin,
+  IFundingBitcoin
 } from "./types";
 
 const DEFAULT_URL = "62.234.216.108:60020";
@@ -73,6 +74,7 @@ export default class ObdApi {
   callbackMap: Map<number, Function> = new Map<number, Function>();
   onMessage: Function | undefined;
   onChannelOpenAttempt: ((data: IOnChannelOpenAttempt) => any) | undefined;
+  onAcceptChannel: ((data: any) => any) | undefined;
   onBitcoinFundingCreated: Function | undefined;
   onChannelClose: Function | undefined;
   onAssetFundingCreated: Function | undefined;
@@ -88,6 +90,7 @@ export default class ObdApi {
     onOpen = (): any => null,
     onMessage = undefined,
     onChannelOpenAttempt = undefined,
+    onAcceptChannel = undefined,
     onBitcoinFundingCreated = undefined,
     onAssetFundingCreated = undefined,
     onChannelClose = undefined,
@@ -110,6 +113,7 @@ export default class ObdApi {
       if (onMessage !== undefined) this.onMessage = onMessage;
       if (onChannelOpenAttempt !== undefined)
         this.onChannelOpenAttempt = onChannelOpenAttempt;
+      if (onAcceptChannel !== undefined) this.onAcceptChannel = onAcceptChannel;
       if (onBitcoinFundingCreated !== undefined)
         this.onBitcoinFundingCreated = onBitcoinFundingCreated;
       if (onAssetFundingCreated !== undefined)
@@ -141,6 +145,13 @@ export default class ObdApi {
             if (this.onChannelOpenAttempt) this.onChannelOpenAttempt(jsonData);
             /*const { funder_node_address, funder_peer_id, funding_pubkey, is_private, funder_address_index } = jsonData.result;
             this.openChannel(funder_node_address, funder_peer_id, { funding_pubkey, is_private, funder_address_index }, () => null);*/
+          }
+
+          /*
+          A channel open request has been accepted.
+          */
+          if (jsonData.type == -110033) {
+            if (this.onAcceptChannel) this.onAcceptChannel(jsonData);
           }
 
           /*
@@ -436,7 +447,7 @@ export default class ObdApi {
         this.onOpenChannel(resultData);
         break;
       case this.messageType.MsgType_SendChannelAccept_33:
-        this.onAcceptChannel(resultData);
+        if (this.onAcceptChannel) this.onAcceptChannel(resultData);
         break;
       case this.messageType.MsgType_FundingCreate_SendAssetFundingCreated_34:
         if (this.onAssetFundingCreated) this.onAssetFundingCreated(resultData);
@@ -561,7 +572,7 @@ export default class ObdApi {
    * MsgType_Core_FundingBTC_2109
    * @param info BtcFundingInfo
    */
-  async fundingBitcoin(info: BtcFundingInfo) {
+  async fundingBitcoin(info: BtcFundingInfo): Promise<Result<IFundingBitcoin>> {
     if (this.isNotString(info.from_address)) {
       return err("empty from_address");
     }
@@ -853,7 +864,7 @@ export default class ObdApi {
     return new Promise(async (resolve) => this.sendData(msg, resolve));
   }
 
-  onAcceptChannel(jsonData: any) {}
+  //onAcceptChannel(jsonData: any) {}
 
   /**
    * MsgType_CheckChannelAddessExist_3156

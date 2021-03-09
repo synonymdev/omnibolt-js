@@ -6,7 +6,6 @@ export declare class Message {
 }
 export declare class BtcFundingInfo {
     from_address: string;
-    from_address_private_key: string;
     to_address: string;
     amount: number;
     miner_fee: number;

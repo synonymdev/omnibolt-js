@@ -115,3 +115,15 @@ export interface IGetMyChannels {
     totalCount: number;
     totalPage: number;
 }
+export interface IFundingInputs {
+    amount: number;
+    scriptPubKey: string;
+    txid: string;
+    vout: number;
+}
+export interface IFundingBitcoin {
+    hex: string;
+    inputs: IFundingInputs[];
+    is_multisig: boolean;
+    total_in_amount: number;
+}
