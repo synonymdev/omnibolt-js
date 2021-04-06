@@ -13,37 +13,32 @@ export interface ILogin {
     userPeerId: string;
 }
 export interface IOnChannelOpenAttempt {
-    type: number;
-    status: true;
-    from: string;
-    to: string;
-    result: {
-        chain_hash: string;
-        channel_reserve_satoshis: number;
-        delayed_payment_base_point: string;
-        dust_limit_satoshis: number;
-        fee_rate_per_kw: number;
-        funder_address_index: number;
-        funder_node_address: string;
-        funder_peer_id: string;
-        funding_address: string;
-        funding_pubkey: string;
-        funding_satoshis: number;
-        htlc_base_point: string;
-        htlc_minimum_msat: number;
-        is_private: boolean;
-        length: number;
-        max_accepted_htlcs: number;
-        max_htlc_value_in_flight_msat: number;
-        payment_base_point: string;
-        push_msat: number;
-        revocation_base_point: string;
-        temporary_channel_id: string;
-        to_self_delay: number;
-        value: null;
-        value_type: string;
-    };
+    chain_hash: string;
+    channel_reserve_satoshis: number;
+    delayed_payment_base_point: string;
+    dust_limit_satoshis: number;
+    fee_rate_per_kw: number;
+    funder_address_index: number;
+    funder_node_address: string;
+    funder_peer_id: string;
+    funding_address: string;
+    funding_pubkey: string;
+    funding_satoshis: number;
+    htlc_base_point: string;
+    htlc_minimum_msat: number;
+    is_private: boolean;
+    length: number;
+    max_accepted_htlcs: number;
+    max_htlc_value_in_flight_msat: number;
+    payment_base_point: string;
+    push_msat: number;
+    revocation_base_point: string;
+    temporary_channel_id: string;
+    to_self_delay: number;
+    value: null;
+    value_type: string;
 }
+export declare type TOnChannelOpenAttempt = IOmniboltResponse<IOnChannelOpenAttempt>;
 export interface IAcceptChannel {
     accept_at: string;
     address_a: string;
@@ -91,6 +86,27 @@ export interface IAcceptChannel {
     value: null;
     value_type: string;
 }
+export interface IOnChannelOpen {
+    data: {
+        asset_amount: number;
+        balance_a: number;
+        balance_b: number;
+        balance_htlc: number;
+        btc_amount: number;
+        btc_funding_times: number;
+        channel_address: string;
+        channel_id: string;
+        create_at: string;
+        curr_state: number;
+        is_private: false;
+        num_updates: number;
+        peer_ida: string;
+        peer_idb: string;
+        property_id: number;
+        temporary_channel_id: string;
+    }[];
+}
+export declare type TOnChannelOpen = IOmniboltResponse<IOnChannelOpen>;
 export interface IGetMyChannelsData {
     asset_amount: number;
     balance_a: number;
@@ -121,9 +137,48 @@ export interface IFundingInputs {
     txid: string;
     vout: number;
 }
+export interface IFundingCreatedInputs extends IFundingInputs {
+    redeemScript: string;
+}
 export interface IFundingBitcoin {
     hex: string;
     inputs: IFundingInputs[];
     is_multisig: boolean;
     total_in_amount: number;
+}
+export interface IBitcoinFundingCreated {
+}
+export interface IOnBitcoinFundingCreated {
+    funder_node_address: string;
+    funder_peer_id: string;
+    funding_btc_hex: string;
+    funding_redeem_hex: string;
+    funding_txid: string;
+    sign_data: {
+        hex: string;
+        inputs: IFundingCreatedInputs[];
+        is_multisig: boolean;
+        pub_key_a: string;
+        pub_key_b: string;
+        temporary_channel_id: string;
+        total_in_amount: number;
+        total_out_amount: number;
+    };
+}
+export declare type TOnBitcoinFundingCreated = IOmniboltResponse<IOnBitcoinFundingCreated>;
+export interface ISendSignedHex100341 {
+    signed_hex: string;
+}
+export interface IOmniboltResponse<T> extends IAdditionalResponseData {
+    type: number;
+    status: boolean;
+    from: string;
+    to: string;
+    result: T;
+}
+export interface IAdditionalResponseData {
+    pageNum?: number;
+    pageSize?: number;
+    totalCount?: number;
+    totalPage?: number;
 }
