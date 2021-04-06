@@ -95,7 +95,7 @@ export default class ObdApi {
     onOpen = (): any => null,
     onMessage = (): any => null,
     onChannelOpenAttempt = (data: TOnChannelOpenAttempt): any => null,
-    onAcceptChannel = (): any => null,
+    onAcceptChannel = (data: IAcceptChannel): any => null,
     onBitcoinFundingCreated = (data: TOnBitcoinFundingCreated): any => null,
     onAssetFundingCreated = (): any => null,
     onChannelClose = (): any => null,

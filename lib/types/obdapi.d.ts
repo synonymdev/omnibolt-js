@@ -28,7 +28,7 @@ export default class ObdApi {
         onOpen?: (() => any) | undefined;
         onMessage?: (() => any) | undefined;
         onChannelOpenAttempt?: ((data: TOnChannelOpenAttempt) => any) | undefined;
-        onAcceptChannel?: (() => any) | undefined;
+        onAcceptChannel?: ((data: IAcceptChannel) => any) | undefined;
         onBitcoinFundingCreated?: ((data: TOnBitcoinFundingCreated) => any) | undefined;
         onAssetFundingCreated?: (() => any) | undefined;
         onChannelClose?: (() => any) | undefined;
