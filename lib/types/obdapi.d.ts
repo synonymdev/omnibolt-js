@@ -1,6 +1,6 @@
 import { MessageType, Message, P2PPeer, BtcFundingInfo, FundingBtcCreated, FundingBtcSigned, OmniFundingAssetInfo, OmniSendAssetInfo, OpenChannelInfo, AcceptChannelInfo, AssetFundingCreatedInfo, AssetFundingSignedInfo, SignedInfo100100, SignedInfo100101, SignedInfo100102, SignedInfo100103, SignedInfo100104, SignedInfo100105, SignedInfo100106, SignedInfo100110, SignedInfo100111, SignedInfo100112, SignedInfo100113, SignedInfo100114, SignedInfo100360, SignedInfo100361, SignedInfo100362, SignedInfo100363, SignedInfo100364, SignedInfo101035, SignedInfo101134, CommitmentTx, CommitmentTxSigned, InvoiceInfo, HTLCFindPathInfo, addHTLCInfo, HtlcSignedInfo, ForwardRInfo, SignRInfo, CloseHtlcTxInfo, CloseHtlcTxInfoSigned, IssueFixedAmountInfo, IssueManagedAmoutInfo, OmniSendGrant, OmniSendRevoke, CloseChannelSign, AtomicSwapAccepted, AtomicSwapRequest } from "./pojo";
 import { Result } from "./result";
-import { IAcceptChannel, IConnect, IGetMyChannels, IOnChannelOpenAttempt, ILogin, IFundingBitcoin } from "./types";
+import { IAcceptChannel, IConnect, IGetMyChannels, ILogin, IFundingBitcoin, IBitcoinFundingCreated, ISendSignedHex100341, TOnBitcoinFundingCreated, TOnChannelOpenAttempt } from "./types";
 export default class ObdApi {
     constructor({ url }?: {
         url?: string | undefined;
@@ -13,9 +13,9 @@ export default class ObdApi {
     globalCallback: Function | undefined;
     callbackMap: Map<number, Function>;
     onMessage: Function | undefined;
-    onChannelOpenAttempt: ((data: IOnChannelOpenAttempt) => any) | undefined;
-    onAcceptChannel: ((data: any) => any) | undefined;
-    onBitcoinFundingCreated: Function | undefined;
+    onChannelOpenAttempt: ((data: TOnChannelOpenAttempt) => any) | undefined;
+    onAcceptChannel: ((data: IAcceptChannel) => any) | undefined;
+    onBitcoinFundingCreated: ((data: TOnBitcoinFundingCreated) => any) | undefined;
     onChannelClose: Function | undefined;
     onAssetFundingCreated: Function | undefined;
     loginData: {
@@ -26,12 +26,12 @@ export default class ObdApi {
     connect({ url, onOpen, onMessage, onChannelOpenAttempt, onAcceptChannel, onBitcoinFundingCreated, onAssetFundingCreated, onChannelClose, onError, onClose, onAddHTLC, onForwardR, onSignR, onCloseHTLC }?: {
         url?: string | undefined;
         onOpen?: (() => any) | undefined;
-        onMessage?: undefined;
-        onChannelOpenAttempt?: undefined;
-        onAcceptChannel?: undefined;
-        onBitcoinFundingCreated?: undefined;
-        onAssetFundingCreated?: undefined;
-        onChannelClose?: undefined;
+        onMessage?: (() => any) | undefined;
+        onChannelOpenAttempt?: ((data: TOnChannelOpenAttempt) => any) | undefined;
+        onAcceptChannel?: (() => any) | undefined;
+        onBitcoinFundingCreated?: ((data: TOnBitcoinFundingCreated) => any) | undefined;
+        onAssetFundingCreated?: (() => any) | undefined;
+        onChannelClose?: (() => any) | undefined;
         onError?: ((e: string | object) => any) | undefined;
         onClose?: ((code: number, reason: string) => any) | undefined;
         onAddHTLC?: (() => null) | undefined;
@@ -54,8 +54,8 @@ export default class ObdApi {
     connectPeer(info: P2PPeer): Promise<Result<string>>;
     fundingBitcoin(info: BtcFundingInfo): Promise<Result<IFundingBitcoin>>;
     onFundingBitcoin(jsonData: any): void;
-    bitcoinFundingCreated(recipient_node_peer_id: string, recipient_user_peer_id: string, info: FundingBtcCreated): Promise<unknown>;
-    sendSignedHex100341(recipient_node_peer_id: string, recipient_user_peer_id: string, signed_hex: string): Promise<unknown>;
+    bitcoinFundingCreated(recipient_node_peer_id: string, recipient_user_peer_id: string, info: FundingBtcCreated): Promise<Result<IBitcoinFundingCreated>>;
+    sendSignedHex100341(recipient_node_peer_id: string, recipient_user_peer_id: string, signed_hex: string): Promise<Result<ISendSignedHex100341>>;
     bitcoinFundingSigned(recipient_node_peer_id: string, recipient_user_peer_id: string, info: FundingBtcSigned): Promise<unknown>;
     listProperties(): Promise<unknown>;
     onListProperties(jsonData: any): void;

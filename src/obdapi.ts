@@ -53,9 +53,12 @@ import {
   IAcceptChannel,
   IConnect,
   IGetMyChannels,
-  IOnChannelOpenAttempt,
   ILogin,
-  IFundingBitcoin
+  IFundingBitcoin,
+  IBitcoinFundingCreated,
+  ISendSignedHex100341,
+  TOnBitcoinFundingCreated,
+  TOnChannelOpenAttempt
 } from "./types";
 
 const DEFAULT_URL = "62.234.216.108:60020";
@@ -73,9 +76,11 @@ export default class ObdApi {
   globalCallback: Function | undefined;
   callbackMap: Map<number, Function> = new Map<number, Function>();
   onMessage: Function | undefined;
-  onChannelOpenAttempt: ((data: IOnChannelOpenAttempt) => any) | undefined;
-  onAcceptChannel: ((data: any) => any) | undefined;
-  onBitcoinFundingCreated: Function | undefined;
+  onChannelOpenAttempt: ((data: TOnChannelOpenAttempt) => any) | undefined;
+  onAcceptChannel: ((data: IAcceptChannel) => any) | undefined;
+  onBitcoinFundingCreated:
+    | ((data: TOnBitcoinFundingCreated) => any)
+    | undefined;
   onChannelClose: Function | undefined;
   onAssetFundingCreated: Function | undefined;
 
@@ -88,12 +93,12 @@ export default class ObdApi {
   connect({
     url = this.defaultUrl,
     onOpen = (): any => null,
-    onMessage = undefined,
-    onChannelOpenAttempt = undefined,
-    onAcceptChannel = undefined,
-    onBitcoinFundingCreated = undefined,
-    onAssetFundingCreated = undefined,
-    onChannelClose = undefined,
+    onMessage = (): any => null,
+    onChannelOpenAttempt = (data: TOnChannelOpenAttempt): any => null,
+    onAcceptChannel = (): any => null,
+    onBitcoinFundingCreated = (data: TOnBitcoinFundingCreated): any => null,
+    onAssetFundingCreated = (): any => null,
+    onChannelClose = (): any => null,
     onError = (e: string | object): any => null,
     onClose = (code: number, reason: string): any => null,
     onAddHTLC = () => null,
@@ -604,7 +609,7 @@ export default class ObdApi {
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: FundingBtcCreated
-  ) {
+  ): Promise<Result<IBitcoinFundingCreated>> {
     if (this.isNotString(recipient_node_peer_id)) {
       return err("error recipient_node_peer_id");
     }
@@ -638,7 +643,7 @@ export default class ObdApi {
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     signed_hex: string
-  ) {
+  ): Promise<Result<ISendSignedHex100341>> {
     if (this.isNotString(recipient_node_peer_id)) {
       return err("error recipient_node_peer_id");
     }
