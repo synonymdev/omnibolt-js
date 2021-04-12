@@ -1,6 +1,6 @@
 import { MessageType, Message, P2PPeer, BtcFundingInfo, FundingBtcCreated, FundingBtcSigned, OmniFundingAssetInfo, OmniSendAssetInfo, OpenChannelInfo, AcceptChannelInfo, AssetFundingCreatedInfo, AssetFundingSignedInfo, SignedInfo100100, SignedInfo100101, SignedInfo100102, SignedInfo100103, SignedInfo100104, SignedInfo100105, SignedInfo100106, SignedInfo100110, SignedInfo100111, SignedInfo100112, SignedInfo100113, SignedInfo100114, SignedInfo100360, SignedInfo100361, SignedInfo100362, SignedInfo100363, SignedInfo100364, SignedInfo101035, SignedInfo101134, CommitmentTx, CommitmentTxSigned, InvoiceInfo, HTLCFindPathInfo, addHTLCInfo, HtlcSignedInfo, ForwardRInfo, SignRInfo, CloseHtlcTxInfo, CloseHtlcTxInfoSigned, IssueFixedAmountInfo, IssueManagedAmoutInfo, OmniSendGrant, OmniSendRevoke, CloseChannelSign, AtomicSwapAccepted, AtomicSwapRequest } from "./pojo";
 import { Result } from "./result";
-import { IAcceptChannel, IConnect, IGetMyChannels, ILogin, IFundingBitcoin, IBitcoinFundingCreated, ISendSignedHex100341, TOnBitcoinFundingCreated, TOnChannelOpenAttempt } from "./types";
+import { IAcceptChannel, IConnect, IGetMyChannels, ILogin, IFundingBitcoin, IBitcoinFundingCreated, ISendSignedHex100341, TOnBitcoinFundingCreated, TOnChannelOpenAttempt, IBitcoinFundingSigned, TOnAssetFundingCreated, IAssetFundingSigned, TSendSignedHex101035, TOnCommitmentTransactionCreated } from "./types";
 export default class ObdApi {
     constructor({ url }?: {
         url?: string | undefined;
@@ -16,28 +16,30 @@ export default class ObdApi {
     onChannelOpenAttempt: ((data: TOnChannelOpenAttempt) => any) | undefined;
     onAcceptChannel: ((data: IAcceptChannel) => any) | undefined;
     onBitcoinFundingCreated: ((data: TOnBitcoinFundingCreated) => any) | undefined;
+    onAssetFundingCreated: ((data: TOnAssetFundingCreated) => any) | undefined;
+    onCommitmentTransactionCreated: ((data: TOnCommitmentTransactionCreated) => any) | undefined;
     onChannelClose: Function | undefined;
-    onAssetFundingCreated: Function | undefined;
     loginData: {
         nodeAddress: string;
         nodePeerId: string;
         userPeerId: string;
     };
-    connect({ url, onOpen, onMessage, onChannelOpenAttempt, onAcceptChannel, onBitcoinFundingCreated, onAssetFundingCreated, onChannelClose, onError, onClose, onAddHTLC, onForwardR, onSignR, onCloseHTLC }?: {
-        url?: string | undefined;
-        onOpen?: (() => any) | undefined;
-        onMessage?: (() => any) | undefined;
-        onChannelOpenAttempt?: ((data: TOnChannelOpenAttempt) => any) | undefined;
-        onAcceptChannel?: ((data: IAcceptChannel) => any) | undefined;
-        onBitcoinFundingCreated?: ((data: TOnBitcoinFundingCreated) => any) | undefined;
-        onAssetFundingCreated?: (() => any) | undefined;
-        onChannelClose?: (() => any) | undefined;
-        onError?: ((e: string | object) => any) | undefined;
-        onClose?: ((code: number, reason: string) => any) | undefined;
-        onAddHTLC?: (() => null) | undefined;
-        onForwardR?: (() => null) | undefined;
-        onSignR?: (() => null) | undefined;
-        onCloseHTLC?: (() => null) | undefined;
+    connect({ url, onOpen, onMessage, onChannelOpenAttempt, onAcceptChannel, onBitcoinFundingCreated, onAssetFundingCreated, onCommitmentTransactionCreated, onChannelClose, onError, onClose, onAddHTLC, onForwardR, onSignR, onCloseHTLC }: {
+        url: string | undefined;
+        onOpen: () => null;
+        onMessage: () => null;
+        onChannelOpenAttempt: (data: TOnChannelOpenAttempt) => null;
+        onAcceptChannel: (data: IAcceptChannel) => null;
+        onBitcoinFundingCreated: (data: TOnBitcoinFundingCreated) => null;
+        onAssetFundingCreated: (data: TOnAssetFundingCreated) => null;
+        onCommitmentTransactionCreated: (data: TOnCommitmentTransactionCreated) => null;
+        onChannelClose: () => null;
+        onError: (e: string | object) => null;
+        onClose: (code: number, reason: string) => null;
+        onAddHTLC: () => null;
+        onForwardR: () => null;
+        onSignR: () => null;
+        onCloseHTLC: () => null;
     }): Promise<Result<IConnect>>;
     registerEvent(msgType: number, callback: Function): void;
     removeEvent(msgType: number): void;
@@ -56,7 +58,7 @@ export default class ObdApi {
     onFundingBitcoin(jsonData: any): void;
     bitcoinFundingCreated(recipient_node_peer_id: string, recipient_user_peer_id: string, info: FundingBtcCreated): Promise<Result<IBitcoinFundingCreated>>;
     sendSignedHex100341(recipient_node_peer_id: string, recipient_user_peer_id: string, signed_hex: string): Promise<Result<ISendSignedHex100341>>;
-    bitcoinFundingSigned(recipient_node_peer_id: string, recipient_user_peer_id: string, info: FundingBtcSigned): Promise<unknown>;
+    bitcoinFundingSigned(recipient_node_peer_id: string, recipient_user_peer_id: string, info: FundingBtcSigned): Promise<Result<IBitcoinFundingSigned>>;
     listProperties(): Promise<unknown>;
     onListProperties(jsonData: any): void;
     fundingAsset(info: OmniFundingAssetInfo): Promise<unknown>;
@@ -75,11 +77,10 @@ export default class ObdApi {
     assetFundingCreated(recipient_node_peer_id: string, recipient_user_peer_id: string, info: AssetFundingCreatedInfo): Promise<unknown>;
     sendSignedHex101034(recipient_node_peer_id: string, recipient_user_peer_id: string, signed_hex: string): Promise<unknown>;
     sendSignedHex101134(info: SignedInfo101134): Promise<unknown>;
-    assetFundingSigned(recipient_node_peer_id: string, recipient_user_peer_id: string, info: AssetFundingSignedInfo): Promise<unknown>;
+    assetFundingSigned(recipient_node_peer_id: string, recipient_user_peer_id: string, info: AssetFundingSignedInfo): Promise<Result<IAssetFundingSigned>>;
     onAssetFundingSigned(jsonData: any): void;
-    sendSignedHex101035(recipient_node_peer_id: string, recipient_user_peer_id: string, info: SignedInfo101035): Promise<unknown>;
+    sendSignedHex101035(recipient_node_peer_id: string, recipient_user_peer_id: string, info: SignedInfo101035): Promise<Result<TSendSignedHex101035>>;
     commitmentTransactionCreated(recipient_node_peer_id: string, recipient_user_peer_id: string, info: CommitmentTx): Promise<unknown>;
-    onCommitmentTransactionCreated(jsonData: any): void;
     sendSignedHex100360(recipient_node_peer_id: string, recipient_user_peer_id: string, info: SignedInfo100360): Promise<unknown>;
     commitmentTransactionAccepted(recipient_node_peer_id: string, recipient_user_peer_id: string, info: CommitmentTxSigned): Promise<unknown>;
     onCommitmentTransactionAccepted(jsonData: any): void;
