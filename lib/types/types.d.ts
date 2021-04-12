@@ -166,9 +166,103 @@ export interface IOnBitcoinFundingCreated {
     };
 }
 export declare type TOnBitcoinFundingCreated = IOmniboltResponse<IOnBitcoinFundingCreated>;
+export interface IOnAssetFundingCreated {
+    c1a_rsmc_hex: string;
+    channel_id: string;
+    funder_node_address: string;
+    funder_peer_id: string;
+    funding_omni_hex: string;
+    rsmc_temp_address_pub_key: string;
+    sign_data: {
+        hex: string;
+        inputs: {
+            amount: number;
+            redeemScript: string;
+            scriptPubKey: string;
+            txid: string;
+            vout: number;
+        }[];
+        is_multisig: boolean;
+        pub_key_a: string;
+        pub_key_b: string;
+        temporary_channel_id: string;
+        total_in_amount: number;
+        total_out_amount: number;
+    };
+    temporary_channel_id: string;
+    to_peer_id: string;
+}
+export declare type TOnAssetFundingCreated = IOmniboltResponse<IOnAssetFundingCreated>;
 export interface ISendSignedHex100341 {
     signed_hex: string;
 }
+export interface IBitcoinFundingSigned {
+    approval: true;
+    funding_redeem_hex: string;
+    funding_txid: string;
+    temporary_channel_id: string;
+}
+export interface IAssetFundingSigned {
+    alice_br_sign_data: {
+        br_id: number;
+        hex: string;
+        inputs: IFundingInputs[];
+        is_multisig: boolean;
+        pub_key_a: string;
+        pub_key_b: string;
+    };
+    alice_rd_sign_data: {
+        hex: string;
+        inputs: IFundingInputs[];
+        is_multisig: true;
+        pub_key_a: string;
+        pub_key_b: string;
+    };
+    temporary_channel_id: string;
+}
+export interface ISendSignedHex101035 {
+    channel_id: string;
+}
+export declare type TSendSignedHex101035 = IOmniboltResponse<ISendSignedHex101035>;
+export interface IOnCommitmentTransactionCreated {
+    amount: number;
+    amount_a: number;
+    amount_b: number;
+    channel_id: string;
+    commitment_tx_hash: string;
+    counterparty_raw_data: {
+        hex: string;
+        inputs: {
+            amount: number;
+            redeemScript: string;
+            scriptPubKey: string;
+            txid: string;
+            vout: number;
+        }[];
+        is_multisig: true;
+        private_key: string;
+        pub_key_a: string;
+        pub_key_b: string;
+    };
+    curr_temp_address_pub_key: string;
+    last_temp_address_private_key: string;
+    length: number;
+    msg_hash: string;
+    payer_node_address: string;
+    payer_peer_id: string;
+    rsmc_raw_data: {
+        hex: string;
+        inputs: null;
+        is_multisig: false;
+        private_key: string;
+        pub_key_a: string;
+        pub_key_b: string;
+    };
+    to_peer_id: string;
+    value: null;
+    value_type: string;
+}
+export declare type TOnCommitmentTransactionCreated = IOmniboltResponse<IOnCommitmentTransactionCreated>;
 export interface IOmniboltResponse<T> extends IAdditionalResponseData {
     type: number;
     status: boolean;

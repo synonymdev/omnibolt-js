@@ -58,7 +58,12 @@ import {
   IBitcoinFundingCreated,
   ISendSignedHex100341,
   TOnBitcoinFundingCreated,
-  TOnChannelOpenAttempt
+  TOnChannelOpenAttempt,
+  IBitcoinFundingSigned,
+  TOnAssetFundingCreated,
+  IAssetFundingSigned,
+  TSendSignedHex101035,
+  TOnCommitmentTransactionCreated
 } from "./types";
 
 const DEFAULT_URL = "62.234.216.108:60020";
@@ -81,9 +86,11 @@ export default class ObdApi {
   onBitcoinFundingCreated:
     | ((data: TOnBitcoinFundingCreated) => any)
     | undefined;
+  onAssetFundingCreated: ((data: TOnAssetFundingCreated) => any) | undefined;
+  onCommitmentTransactionCreated:
+    | ((data: TOnCommitmentTransactionCreated) => any)
+    | undefined;
   onChannelClose: Function | undefined;
-  onAssetFundingCreated: Function | undefined;
-
   loginData = {
     nodeAddress: "",
     nodePeerId: "",
@@ -91,21 +98,40 @@ export default class ObdApi {
   };
 
   connect({
-    url = this.defaultUrl,
-    onOpen = (): any => null,
-    onMessage = (): any => null,
-    onChannelOpenAttempt = (data: TOnChannelOpenAttempt): any => null,
-    onAcceptChannel = (data: IAcceptChannel): any => null,
-    onBitcoinFundingCreated = (data: TOnBitcoinFundingCreated): any => null,
-    onAssetFundingCreated = (): any => null,
-    onChannelClose = (): any => null,
-    onError = (e: string | object): any => null,
-    onClose = (code: number, reason: string): any => null,
-    onAddHTLC = () => null,
-    onForwardR = () => null,
-    onSignR = () => null,
-    onCloseHTLC = () => null
-  } = {}): Promise<Result<IConnect>> {
+    url = undefined,
+    onOpen,
+    onMessage,
+    onChannelOpenAttempt,
+    onAcceptChannel,
+    onBitcoinFundingCreated,
+    onAssetFundingCreated,
+    onCommitmentTransactionCreated,
+    onChannelClose,
+    onError,
+    onClose,
+    onAddHTLC,
+    onForwardR,
+    onSignR,
+    onCloseHTLC
+  }: {
+    url: string | undefined;
+    onOpen: () => null;
+    onMessage: () => null;
+    onChannelOpenAttempt: (data: TOnChannelOpenAttempt) => null;
+    onAcceptChannel: (data: IAcceptChannel) => null;
+    onBitcoinFundingCreated: (data: TOnBitcoinFundingCreated) => null;
+    onAssetFundingCreated: (data: TOnAssetFundingCreated) => null;
+    onCommitmentTransactionCreated: (
+      data: TOnCommitmentTransactionCreated
+    ) => null;
+    onChannelClose: () => null;
+    onError: (e: string | object) => null;
+    onClose: (code: number, reason: string) => null;
+    onAddHTLC: () => null;
+    onForwardR: () => null;
+    onSignR: () => null;
+    onCloseHTLC: () => null;
+  }): Promise<Result<IConnect>> {
     return new Promise((resolve) => {
       if (this.isConnectedToOBD || url !== this.defaultUrl) {
         //Disconnect from the current node and connect to the new one
@@ -113,7 +139,11 @@ export default class ObdApi {
         if (this.ws) this.disconnect();
       }
 
-      if (url !== null && url.length > 0) this.defaultUrl = url;
+      if (!url) {
+        this.defaultUrl = DEFAULT_URL;
+      } else {
+        this.defaultUrl = url;
+      }
       this.ws = new WebSocket(`ws://${this.defaultUrl}/wstest`);
       if (onMessage !== undefined) this.onMessage = onMessage;
       if (onChannelOpenAttempt !== undefined)
@@ -123,6 +153,8 @@ export default class ObdApi {
         this.onBitcoinFundingCreated = onBitcoinFundingCreated;
       if (onAssetFundingCreated !== undefined)
         this.onAssetFundingCreated = onAssetFundingCreated;
+      if (onCommitmentTransactionCreated !== undefined)
+        this.onCommitmentTransactionCreated = onCommitmentTransactionCreated;
       if (onChannelClose !== undefined) this.onChannelClose = onChannelClose;
       if (onAddHTLC !== undefined) this.onAddHTLC = onAddHTLC;
       if (onForwardR !== undefined) this.onForwardR = onForwardR;
@@ -177,6 +209,12 @@ export default class ObdApi {
             //this.assFundingSigned(recipient_node_peer_id, jsonData.result.to_peer_id, { ...jsonData }, () => null);
           }
 
+          //-110351
+          if (jsonData.type == -110351) {
+            //Auto response to acknowledge creation of the commitment transaction.
+            if (this.onCommitmentTransactionCreated)
+              this.onCommitmentTransactionCreated(jsonData);
+          }
           /*
            *A peer is attempting to close a channel.
            * */
@@ -185,17 +223,17 @@ export default class ObdApi {
           }
 
           /*
-				   MsgType_HTLC_SendAddHTLC_40
-				   MsgType_HTLC_RecvAddHTLC_40
-				   */
+           MsgType_HTLC_SendAddHTLC_40
+           MsgType_HTLC_RecvAddHTLC_40
+           */
           if (jsonData.type == -110040) {
             this.onAddHTLC(jsonData);
           }
 
           /*
-				   MsgType_HTLC_SendAddHTLCSigned_41
-				   MsgType_HTLC_RecvAddHTLCSigned_41
-				   */
+           MsgType_HTLC_SendAddHTLCSigned_41
+           MsgType_HTLC_RecvAddHTLCSigned_41
+           */
           if (jsonData.type == -100041) {
             //Sent Add HTLC
           }
@@ -424,80 +462,81 @@ export default class ObdApi {
     switch (jsonData.type) {
       case this.messageType.MsgType_UserLogin_2001:
         this.userPeerId = toId;
-        this.onLogIn(resultData);
+        this.onLogIn(jsonData);
         break;
       case this.messageType.MsgType_UserLogout_2002:
-        this.onLogout(resultData);
+        this.onLogout(jsonData);
         break;
       // case this.messageType.MsgType_Core_GetNewAddress_2101:
-      //   this.onGetNewAddressFromOmniCore(resultData);
+      //   this.onGetNewAddressFromOmniCore(jsonData);
       //   break;
       case this.messageType.MsgType_Core_FundingBTC_2109:
-        this.onFundingBitcoin(resultData);
+        this.onFundingBitcoin(jsonData);
         break;
       case this.messageType.MsgType_Core_Omni_ListProperties_2117:
-        this.onListProperties(resultData);
+        this.onListProperties(jsonData);
         break;
       case this.messageType.MsgType_Core_Omni_FundingAsset_2120:
-        this.onFundingAsset(resultData);
+        this.onFundingAsset(jsonData);
         break;
 
       case this.messageType.MsgType_Mnemonic_CreateAddress_3000:
-        this.onGenAddressFromMnemonic(resultData);
+        this.onGenAddressFromMnemonic(jsonData);
         break;
       case this.messageType.MsgType_Mnemonic_GetAddressByIndex_3001:
-        this.onGetAddressInfo(resultData);
+        this.onGetAddressInfo(jsonData);
         break;
       case this.messageType.MsgType_SendChannelOpen_32:
-        this.onOpenChannel(resultData);
+        this.onOpenChannel(jsonData);
         break;
       case this.messageType.MsgType_SendChannelAccept_33:
-        if (this.onAcceptChannel) this.onAcceptChannel(resultData);
+        if (this.onAcceptChannel) this.onAcceptChannel(jsonData);
         break;
       case this.messageType.MsgType_FundingCreate_SendAssetFundingCreated_34:
-        if (this.onAssetFundingCreated) this.onAssetFundingCreated(resultData);
+        if (this.onAssetFundingCreated) this.onAssetFundingCreated(jsonData);
         break;
       case this.messageType.MsgType_FundingSign_SendAssetFundingSigned_35:
-        this.onAssetFundingSigned(resultData);
+        this.onAssetFundingSigned(jsonData);
         break;
       case this.messageType
         .MsgType_CommitmentTx_SendCommitmentTransactionCreated_351:
-        this.onCommitmentTransactionCreated(resultData);
+        if (this.onCommitmentTransactionCreated)
+          this.onCommitmentTransactionCreated(jsonData);
         break;
       case this.messageType
         .MsgType_CommitmentTxSigned_SendRevokeAndAcknowledgeCommitmentTransaction_352:
-        this.onCommitmentTransactionAccepted(resultData);
+        this.onCommitmentTransactionAccepted(jsonData);
         break;
       case this.messageType.MsgType_HTLC_Invoice_402:
-        this.onAddInvoice(resultData);
+        this.onAddInvoice(jsonData);
         break;
       case this.messageType.MsgType_HTLC_FindPath_401:
-        this.onHTLCFindPath(resultData);
+        this.onHTLCFindPath(jsonData);
         break;
       case this.messageType.MsgType_HTLC_SendAddHTLC_40:
-        this.onAddHTLC(resultData);
+        this.onAddHTLC(jsonData);
         break;
       case this.messageType.MsgType_HTLC_SendAddHTLCSigned_41:
-        this.onHtlcSigned(resultData);
+        this.onHtlcSigned(jsonData);
         break;
       case this.messageType.MsgType_HTLC_SendVerifyR_45:
-        this.onForwardR(resultData);
+        this.onForwardR(jsonData);
         break;
       case this.messageType.MsgType_HTLC_SendSignVerifyR_46:
-        this.onSignR(resultData);
+        this.onSignR(jsonData);
         break;
       case this.messageType.MsgType_HTLC_SendRequestCloseCurrTx_49:
-        this.onCloseHTLC(resultData);
+        this.onCloseHTLC(jsonData);
         break;
       case this.messageType.MsgType_HTLC_SendCloseSigned_50:
-        this.onCloseHTLCSigned(resultData);
+        this.onCloseHTLCSigned(jsonData);
         break;
 
       case this.messageType.MsgType_Core_Omni_GetTransaction_2118:
-        this.onGetTransaction(resultData);
+        this.onGetTransaction(jsonData);
         break;
       case this.messageType.MsgType_Core_Omni_CreateNewTokenFixed_2113:
-        this.onIssueFixedAmount(resultData);
+        this.onIssueFixedAmount(jsonData);
         break;
     }
   }
@@ -670,7 +709,7 @@ export default class ObdApi {
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: FundingBtcSigned
-  ) {
+  ): Promise<Result<IBitcoinFundingSigned>> {
     if (this.isNotString(recipient_node_peer_id)) {
       return err("error recipient_node_peer_id");
     }
@@ -1005,7 +1044,7 @@ export default class ObdApi {
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: AssetFundingSignedInfo
-  ) {
+  ): Promise<Result<IAssetFundingSigned>> {
     if (this.isNotString(recipient_node_peer_id)) {
       return err("error recipient_node_peer_id");
     }
@@ -1042,7 +1081,7 @@ export default class ObdApi {
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: SignedInfo101035
-  ) {
+  ): Promise<Result<TSendSignedHex101035>> {
     if (this.isNotString(recipient_node_peer_id)) {
       return err("error recipient_node_peer_id");
     }
@@ -1099,8 +1138,6 @@ export default class ObdApi {
     msg.data = info;
     return new Promise(async (resolve) => this.sendData(msg, resolve));
   }
-
-  onCommitmentTransactionCreated(jsonData: any) {}
 
   /**
    * MsgType_ClientSign_CommitmentTx_AliceSignC2a_360
