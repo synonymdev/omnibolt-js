@@ -72,7 +72,6 @@ export default class ObdApi {
   constructor({ url = DEFAULT_URL } = {}) {
     this.defaultUrl = url;
   }
-
   isConnectedToOBD: boolean = false;
   isLoggedIn: boolean = false;
   messageType: MessageType = new MessageType();
@@ -80,6 +79,7 @@ export default class ObdApi {
   defaultUrl: string;
   globalCallback: Function | undefined;
   callbackMap: Map<number, Function> = new Map<number, Function>();
+  onOpen: ((data: any) => any) | undefined;
   onMessage: Function | undefined;
   onChannelOpenAttempt: ((data: TOnChannelOpenAttempt) => any) | undefined;
   onAcceptChannel: ((data: IAcceptChannel) => any) | undefined;
@@ -115,22 +115,22 @@ export default class ObdApi {
     onCloseHTLC
   }: {
     url: string | undefined;
-    onOpen: () => null;
-    onMessage: () => null;
-    onChannelOpenAttempt: (data: TOnChannelOpenAttempt) => null;
-    onAcceptChannel: (data: IAcceptChannel) => null;
-    onBitcoinFundingCreated: (data: TOnBitcoinFundingCreated) => null;
-    onAssetFundingCreated: (data: TOnAssetFundingCreated) => null;
+    onOpen: (data: any) => any;
+    onMessage: (data: any) => any;
+    onChannelOpenAttempt: (data: TOnChannelOpenAttempt) => any;
+    onAcceptChannel: (data: IAcceptChannel) => any;
+    onBitcoinFundingCreated: (data: TOnBitcoinFundingCreated) => any;
+    onAssetFundingCreated: (data: TOnAssetFundingCreated) => any;
     onCommitmentTransactionCreated: (
       data: TOnCommitmentTransactionCreated
-    ) => null;
-    onChannelClose: () => null;
-    onError: (e: string | object) => null;
-    onClose: (code: number, reason: string) => null;
-    onAddHTLC: () => null;
-    onForwardR: () => null;
-    onSignR: () => null;
-    onCloseHTLC: () => null;
+    ) => any;
+    onChannelClose: (data: any) => any;
+    onError: (e: string | object) => any;
+    onClose: (code: number, reason: string) => any;
+    onAddHTLC: (data: any) => any;
+    onForwardR: (data: any) => any;
+    onSignR: (data: any) => any;
+    onCloseHTLC: (data: any) => any;
   }): Promise<Result<IConnect>> {
     return new Promise((resolve) => {
       if (this.isConnectedToOBD || url !== this.defaultUrl) {
@@ -146,6 +146,7 @@ export default class ObdApi {
       }
       this.ws = new WebSocket(`ws://${this.defaultUrl}/wstest`);
       if (onMessage !== undefined) this.onMessage = onMessage;
+      if (onOpen !== undefined) this.onOpen = onOpen;
       if (onChannelOpenAttempt !== undefined)
         this.onChannelOpenAttempt = onChannelOpenAttempt;
       if (onAcceptChannel !== undefined) this.onAcceptChannel = onAcceptChannel;
@@ -165,7 +166,7 @@ export default class ObdApi {
         // connection opened
         if (this.onMessage) this.onMessage(`Connected to ${url}`);
         this.isConnectedToOBD = true;
-        onOpen();
+        onOpen(url);
       };
 
       this.ws.onmessage = (e) => {
