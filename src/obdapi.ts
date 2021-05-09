@@ -63,7 +63,13 @@ import {
   TOnAssetFundingCreated,
   IAssetFundingSigned,
   TSendSignedHex101035,
-  TOnCommitmentTransactionCreated
+  TOnCommitmentTransactionCreated,
+  ICommitmentTransactionAcceptedResponse,
+  ISendSignedHex100361Response,
+  TOnAcceptChannel,
+  TOn110353,
+  ICommitmentTransactionCreated,
+  TOn110352
 } from "./types";
 
 const DEFAULT_URL = "62.234.216.108:60020";
@@ -82,7 +88,7 @@ export default class ObdApi {
   onOpen: ((data: any) => any) | undefined;
   onMessage: Function | undefined;
   onChannelOpenAttempt: ((data: TOnChannelOpenAttempt) => any) | undefined;
-  onAcceptChannel: ((data: IAcceptChannel) => any) | undefined;
+  onAcceptChannel: ((data: TOnAcceptChannel) => any) | undefined;
   onBitcoinFundingCreated:
     | ((data: TOnBitcoinFundingCreated) => any)
     | undefined;
@@ -90,6 +96,8 @@ export default class ObdApi {
   onCommitmentTransactionCreated:
     | ((data: TOnCommitmentTransactionCreated) => any)
     | undefined;
+  on110353: ((data: TOn110353) => any) | undefined;
+  on110352: ((data: TOn110352) => any) | undefined;
   onChannelClose: Function | undefined;
   loginData = {
     nodeAddress: "",
@@ -106,6 +114,8 @@ export default class ObdApi {
     onBitcoinFundingCreated,
     onAssetFundingCreated,
     onCommitmentTransactionCreated,
+    on110353,
+    on110352,
     onChannelClose,
     onError,
     onClose,
@@ -118,12 +128,14 @@ export default class ObdApi {
     onOpen: (data: any) => any;
     onMessage: (data: any) => any;
     onChannelOpenAttempt: (data: TOnChannelOpenAttempt) => any;
-    onAcceptChannel: (data: IAcceptChannel) => any;
+    onAcceptChannel: (data: TOnAcceptChannel) => any;
     onBitcoinFundingCreated: (data: TOnBitcoinFundingCreated) => any;
     onAssetFundingCreated: (data: TOnAssetFundingCreated) => any;
     onCommitmentTransactionCreated: (
       data: TOnCommitmentTransactionCreated
     ) => any;
+    on110353: (data: TOn110353) => any;
+    on110352: (data: TOn110352) => any;
     onChannelClose: (data: any) => any;
     onError: (e: string | object) => any;
     onClose: (code: number, reason: string) => any;
@@ -156,6 +168,8 @@ export default class ObdApi {
         this.onAssetFundingCreated = onAssetFundingCreated;
       if (onCommitmentTransactionCreated !== undefined)
         this.onCommitmentTransactionCreated = onCommitmentTransactionCreated;
+      if (on110353 !== undefined) this.on110353 = on110353;
+      if (on110352 !== undefined) this.on110352 = on110352;
       if (onChannelClose !== undefined) this.onChannelClose = onChannelClose;
       if (onAddHTLC !== undefined) this.onAddHTLC = onAddHTLC;
       if (onForwardR !== undefined) this.onForwardR = onForwardR;
@@ -215,6 +229,16 @@ export default class ObdApi {
             //Auto response to acknowledge creation of the commitment transaction.
             if (this.onCommitmentTransactionCreated)
               this.onCommitmentTransactionCreated(jsonData);
+          }
+          //-110353
+          if (jsonData.type == -110353) {
+            //Auto response to acknowledge creation of the commitment transaction.
+            if (this.on110353) this.on110353(jsonData);
+          }
+          //-110352
+          if (jsonData.type == -110352) {
+            //Auto response to acknowledge creation of the commitment transaction.
+            if (this.on110352) this.on110352(jsonData);
           }
           /*
            *A peer is attempting to close a channel.
@@ -503,6 +527,13 @@ export default class ObdApi {
         .MsgType_CommitmentTx_SendCommitmentTransactionCreated_351:
         if (this.onCommitmentTransactionCreated)
           this.onCommitmentTransactionCreated(jsonData);
+        break;
+      case this.messageType.MsgType_ClientSign_BobC2b_Rd_353:
+        if (this.on110353) this.on110353(jsonData);
+        break;
+      case this.messageType
+        .MsgType_CommitmentTxSigned_RecvRevokeAndAcknowledgeCommitmentTransaction_352:
+        if (this.on110352) this.on110352(jsonData);
         break;
       case this.messageType
         .MsgType_CommitmentTxSigned_SendRevokeAndAcknowledgeCommitmentTransaction_352:
@@ -1113,7 +1144,7 @@ export default class ObdApi {
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: CommitmentTx
-  ) {
+  ): Promise<Result<ICommitmentTransactionCreated>> {
     if (this.isNotString(recipient_node_peer_id)) {
       return err("error recipient_node_peer_id");
     }
@@ -1181,7 +1212,7 @@ export default class ObdApi {
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: CommitmentTxSigned
-  ) {
+  ): Promise<Result<ICommitmentTransactionAcceptedResponse>> {
     if (this.isNotString(recipient_node_peer_id)) {
       return err("error recipient_node_peer_id");
     }
@@ -1227,7 +1258,7 @@ export default class ObdApi {
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: SignedInfo100361
-  ) {
+  ): Promise<Result<ISendSignedHex100361Response>> {
     if (this.isNotString(recipient_node_peer_id)) {
       return err("error recipient_node_peer_id");
     }
