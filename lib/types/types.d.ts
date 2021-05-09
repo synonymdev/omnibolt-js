@@ -86,6 +86,7 @@ export interface IAcceptChannel {
     value: null;
     value_type: string;
 }
+export declare type TOnAcceptChannel = IOmniboltResponse<IAcceptChannel>;
 export interface IOnChannelOpen {
     data: {
         asset_amount: number;
@@ -223,14 +224,143 @@ export interface IAssetFundingSigned {
 export interface ISendSignedHex101035 {
     channel_id: string;
 }
-export declare type TSendSignedHex101035 = IOmniboltResponse<ISendSignedHex101035>;
+export declare type TSendSignedHex101035 = ISendSignedHex101035;
+export interface ICounterpartyRawData {
+    hex: string;
+    inputs: {
+        amount: number;
+        redeemScript: string;
+        scriptPubKey: string;
+        txid: string;
+        vout: number;
+    }[];
+    is_multisig: true;
+    private_key: string;
+    pub_key_a: string;
+    pub_key_b: string;
+}
+export interface IRSMCRawData {
+    hex: string;
+    inputs: {
+        amount: number;
+        redeemScript: string;
+        scriptPubKey: string;
+        txid: string;
+        vout: number;
+    }[];
+    is_multisig: false;
+    private_key: string;
+    pub_key_a: string;
+    pub_key_b: string;
+}
+export interface ICommitmentTransactionCreated {
+    channel_id: string;
+    counterparty_raw_data: ICounterpartyRawData;
+    rsmc_raw_data: IRSMCRawData;
+}
 export interface IOnCommitmentTransactionCreated {
     amount: number;
     amount_a: number;
     amount_b: number;
     channel_id: string;
     commitment_tx_hash: string;
-    counterparty_raw_data: {
+    counterparty_raw_data: ICounterpartyRawData;
+    curr_temp_address_pub_key: string;
+    last_temp_address_private_key: string;
+    length: number;
+    msg_hash: string;
+    payer_node_address: string;
+    payer_peer_id: string;
+    rsmc_raw_data: IRSMCRawData;
+    to_peer_id: string;
+    value: null;
+    value_type: string;
+}
+export declare type TOnCommitmentTransactionCreated = IOmniboltResponse<IOnCommitmentTransactionCreated>;
+export interface ICommitmentInputs {
+    amount: number;
+    redeemScript: string;
+    scriptPubKey: string;
+    txid: string;
+    vout: number;
+}
+export interface ICommitmentSequenceInputs extends ICommitmentInputs {
+    sequence: number;
+}
+export interface ICommitmentTransactionAcceptedResponse {
+    c2a_br_raw_data: {
+        br_id: number;
+        hex: string;
+        inputs: ICommitmentInputs[];
+        is_multisig: boolean;
+        pub_key_a: string;
+        pub_key_b: string;
+    };
+    c2a_rd_raw_data: {
+        hex: string;
+        inputs: ICommitmentSequenceInputs[];
+        is_multisig: boolean;
+        pub_key_a: string;
+        pub_key_b: string;
+    };
+    c2b_counterparty_raw_data: {
+        hex: string;
+        inputs: ICommitmentInputs[];
+        is_multisig: boolean;
+        pub_key_a: string;
+        pub_key_b: string;
+    };
+    c2b_rsmc_raw_data: {
+        hex: string;
+        inputs: ICommitmentInputs[];
+        is_multisig: boolean;
+        pub_key_a: string;
+        pub_key_b: string;
+    };
+    channel_id: string;
+}
+export interface ISendSignedHex100361Response {
+    approval: boolean;
+    channel_id: string;
+    commitment_tx_hash: string;
+}
+export interface IOn110353 {
+    c2b_rd_partial_data: {
+        hex: string;
+        inputs: {
+            amount: number;
+            redeemScript: string;
+            scriptPubKey: string;
+            sequence: number;
+            txid: string;
+            vout: number;
+        }[];
+        is_multisig: boolean;
+        private_key: string;
+        pub_key_a: string;
+        pub_key_b: string;
+    };
+    channel_id: string;
+    to_peer_id: string;
+}
+export declare type TOn110353 = IOmniboltResponse<IOn110353>;
+export interface IOn110352 {
+    c2a_rd_partial_data: {
+        hex: string;
+        inputs: {
+            amount: number;
+            redeemScript: string;
+            scriptPubKey: string;
+            sequence: number;
+            txid: string;
+            vout: number;
+        }[];
+        is_multisig: boolean;
+        private_key: string;
+        pub_key_a: string;
+        pub_key_b: string;
+    };
+    c2b_counterparty_partial_data: {
         hex: string;
         inputs: {
             amount: number;
@@ -239,30 +369,31 @@ export interface IOnCommitmentTransactionCreated {
             txid: string;
             vout: number;
         }[];
-        is_multisig: true;
+        is_multisig: boolean;
         private_key: string;
         pub_key_a: string;
         pub_key_b: string;
     };
-    curr_temp_address_pub_key: string;
-    last_temp_address_private_key: string;
-    length: number;
-    msg_hash: string;
-    payer_node_address: string;
-    payer_peer_id: string;
-    rsmc_raw_data: {
+    c2b_rsmc_partial_data: {
         hex: string;
-        inputs: null;
-        is_multisig: false;
+        inputs: {
+            amount: number;
+            redeemScript: string;
+            scriptPubKey: string;
+            txid: string;
+            vout: number;
+        }[];
+        is_multisig: boolean;
         private_key: string;
         pub_key_a: string;
         pub_key_b: string;
     };
+    channel_id: string;
+    payee_node_address: string;
+    payee_peer_id: string;
     to_peer_id: string;
-    value: null;
-    value_type: string;
 }
-export declare type TOnCommitmentTransactionCreated = IOmniboltResponse<IOnCommitmentTransactionCreated>;
+export declare type TOn110352 = IOmniboltResponse<IOn110352>;
 export interface IOmniboltResponse<T> extends IAdditionalResponseData {
     type: number;
     status: boolean;
