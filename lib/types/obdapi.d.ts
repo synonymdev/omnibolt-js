@@ -1,6 +1,6 @@
 import { MessageType, Message, P2PPeer, BtcFundingInfo, FundingBtcCreated, FundingBtcSigned, OmniFundingAssetInfo, OmniSendAssetInfo, OpenChannelInfo, AcceptChannelInfo, AssetFundingCreatedInfo, AssetFundingSignedInfo, SignedInfo100100, SignedInfo100101, SignedInfo100102, SignedInfo100103, SignedInfo100104, SignedInfo100105, SignedInfo100106, SignedInfo100110, SignedInfo100111, SignedInfo100112, SignedInfo100113, SignedInfo100114, SignedInfo100360, SignedInfo100361, SignedInfo100362, SignedInfo100363, SignedInfo100364, SignedInfo101035, SignedInfo101134, CommitmentTx, CommitmentTxSigned, InvoiceInfo, HTLCFindPathInfo, addHTLCInfo, HtlcSignedInfo, ForwardRInfo, SignRInfo, CloseHtlcTxInfo, CloseHtlcTxInfoSigned, IssueFixedAmountInfo, IssueManagedAmoutInfo, OmniSendGrant, OmniSendRevoke, CloseChannelSign, AtomicSwapAccepted, AtomicSwapRequest } from "./pojo";
 import { Result } from "./result";
-import { IAcceptChannel, IConnect, IGetMyChannels, ILogin, IFundingBitcoin, IBitcoinFundingCreated, ISendSignedHex100341, TOnBitcoinFundingCreated, TOnChannelOpenAttempt, IBitcoinFundingSigned, TOnAssetFundingCreated, IAssetFundingSigned, TSendSignedHex101035, TOnCommitmentTransactionCreated, ICommitmentTransactionAcceptedResponse, ISendSignedHex100361Response, TOnAcceptChannel, TOn110353, ICommitmentTransactionCreated, TOn110352 } from "./types";
+import { IAcceptChannel, IConnect, IGetMyChannels, ILogin, IFundingBitcoin, IBitcoinFundingCreated, ISendSignedHex100341, TOnBitcoinFundingCreated, TOnChannelOpenAttempt, IBitcoinFundingSigned, TOnAssetFundingCreated, IAssetFundingSigned, TSendSignedHex101035, TOnCommitmentTransactionCreated, ICommitmentTransactionAcceptedResponse, ISendSignedHex100361Response, TOnAcceptChannel, TOn110353, ICommitmentTransactionCreated, TOn110352, ISendSignedHex100364Response, ISendSignedHex100362Response } from "./types";
 export default class ObdApi {
     constructor({ url }?: {
         url?: string | undefined;
@@ -90,9 +90,9 @@ export default class ObdApi {
     commitmentTransactionAccepted(recipient_node_peer_id: string, recipient_user_peer_id: string, info: CommitmentTxSigned): Promise<Result<ICommitmentTransactionAcceptedResponse>>;
     onCommitmentTransactionAccepted(jsonData: any): void;
     sendSignedHex100361(recipient_node_peer_id: string, recipient_user_peer_id: string, info: SignedInfo100361): Promise<Result<ISendSignedHex100361Response>>;
-    sendSignedHex100362(recipient_node_peer_id: string, recipient_user_peer_id: string, info: SignedInfo100362): Promise<unknown>;
+    sendSignedHex100362(recipient_node_peer_id: string, recipient_user_peer_id: string, info: SignedInfo100362): Promise<Result<ISendSignedHex100362Response>>;
     sendSignedHex100363(recipient_node_peer_id: string, recipient_user_peer_id: string, info: SignedInfo100363): Promise<unknown>;
-    sendSignedHex100364(info: SignedInfo100364): Promise<unknown>;
+    sendSignedHex100364(info: SignedInfo100364): Promise<Result<ISendSignedHex100364Response>>;
     addInvoice(info: InvoiceInfo): Promise<unknown>;
     onAddInvoice(jsonData: any): void;
     HTLCFindPath(info: HTLCFindPathInfo): Promise<unknown>;

@@ -324,6 +324,73 @@ export interface ISendSignedHex100361Response {
     channel_id: string;
     commitment_tx_hash: string;
 }
+export interface ISendSignedHex100364Response {
+    amount_to_counterparty: number;
+    amount_to_rsmc: number;
+    channel_id: string;
+    create_at: string;
+    create_by: string;
+    curr_hash: string;
+    curr_state: number;
+    htlc_amount_to_payee: number;
+    id: number;
+    input_amount: number;
+    input_txid: string;
+    input_vout: number;
+    last_commitment_tx_id: number;
+    last_edit_time: string;
+    last_hash: string;
+    owner: string;
+    peer_id_a: string;
+    peer_id_b: string;
+    property_id: number;
+    rsmc_input_txid: string;
+    rsmc_multi_address: string;
+    rsmc_multi_address_script_pub_key: string;
+    rsmc_redeem_script: string;
+    rsmc_temp_address_index: number;
+    rsmc_temp_address_pub_key: string;
+    rsmc_tx_hex: string;
+    rsmc_txid: string;
+    send_at: string;
+    sign_at: string;
+    to_counterparty_tx_hex: string;
+    to_counterparty_txid: string;
+    tx_type: number;
+}
+export interface ISendSignedHex100362Response {
+    c2b_br_raw_data: {
+        br_id: number;
+        hex: string;
+        inputs: {
+            amount: number;
+            redeemScript: string;
+            scriptPubKey: string;
+            txid: string;
+            vout: number;
+        }[];
+        is_multisig: boolean;
+        private_key: string;
+        pub_key_a: string;
+        pub_key_b: string;
+    };
+    c2b_rd_raw_data: {
+        hex: string;
+        inputs: {
+            amount: number;
+            redeemScript: string;
+            scriptPubKey: string;
+            sequence: number;
+            txid: string;
+            vout: number;
+        }[];
+        is_multisig: boolean;
+        private_key: string;
+        pub_key_a: string;
+        pub_key_b: string;
+    };
+    channel_id: string;
+}
 export interface IOn110353 {
     c2b_rd_partial_data: {
         hex: string;
