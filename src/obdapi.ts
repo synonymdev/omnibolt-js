@@ -69,7 +69,9 @@ import {
   TOnAcceptChannel,
   TOn110353,
   ICommitmentTransactionCreated,
-  TOn110352
+  TOn110352,
+  ISendSignedHex100364Response,
+  ISendSignedHex100362Response
 } from "./types";
 
 const DEFAULT_URL = "62.234.216.108:60020";
@@ -1289,7 +1291,7 @@ export default class ObdApi {
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: SignedInfo100362
-  ) {
+  ): Promise<Result<ISendSignedHex100362Response>> {
     if (this.isNotString(recipient_node_peer_id)) {
       return err("error recipient_node_peer_id");
     }
@@ -1345,7 +1347,9 @@ export default class ObdApi {
    * MsgType_ClientSign_CommitmentTx_BobSignC2b_Rd_364
    * @param info      SignedInfo100364
    */
-  async sendSignedHex100364(info: SignedInfo100364) {
+  async sendSignedHex100364(
+    info: SignedInfo100364
+  ): Promise<Result<ISendSignedHex100364Response>> {
     if (this.isNotString(info.channel_id)) {
       return err("empty channel_id");
     }
