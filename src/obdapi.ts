@@ -71,7 +71,8 @@ import {
   ICommitmentTransactionCreated,
   TOn110352,
   ISendSignedHex100364Response,
-  ISendSignedHex100362Response
+  ISendSignedHex100362Response,
+  ISendSignedHex100363Response
 } from "./types";
 
 const DEFAULT_URL = "62.234.216.108:60020";
@@ -1322,7 +1323,7 @@ export default class ObdApi {
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: SignedInfo100363
-  ) {
+  ): Promise<Result<ISendSignedHex100363Response>> {
     if (this.isNotString(recipient_node_peer_id)) {
       return err("error recipient_node_peer_id");
     }
