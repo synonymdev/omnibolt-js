@@ -72,7 +72,8 @@ import {
   TOn110352,
   ISendSignedHex100364Response,
   ISendSignedHex100362Response,
-  ISendSignedHex100363Response
+  ISendSignedHex100363Response,
+  IGetProperty
 } from "./types";
 
 const DEFAULT_URL = "62.234.216.108:60020";
@@ -2136,7 +2137,7 @@ export default class ObdApi {
    * MsgType_Core_Omni_GetProperty_2119
    * @param propertyId string
    */
-  async getProperty(propertyId: string) {
+  async getProperty(propertyId: string): Promise<Result<IGetProperty>> {
     if (this.isNotString(propertyId)) {
       return err("empty propertyId");
     }
