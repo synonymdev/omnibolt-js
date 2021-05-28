@@ -553,3 +553,18 @@ export interface IAdditionalResponseData {
   totalCount?: number;
   totalPage?: number;
 }
+
+export interface IGetProperty {
+  category: string;
+  creationtxid: string;
+  data: string;
+  divisible: boolean;
+  fixedissuance: boolean;
+  issuer: string;
+  managedissuance: boolean;
+  name: string;
+  propertyid: number;
+  subcategory: string;
+  totaltokens: string;
+  url: string;
+}

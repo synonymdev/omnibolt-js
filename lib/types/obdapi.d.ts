@@ -1,6 +1,6 @@
 import { MessageType, Message, P2PPeer, BtcFundingInfo, FundingBtcCreated, FundingBtcSigned, OmniFundingAssetInfo, OmniSendAssetInfo, OpenChannelInfo, AcceptChannelInfo, AssetFundingCreatedInfo, AssetFundingSignedInfo, SignedInfo100100, SignedInfo100101, SignedInfo100102, SignedInfo100103, SignedInfo100104, SignedInfo100105, SignedInfo100106, SignedInfo100110, SignedInfo100111, SignedInfo100112, SignedInfo100113, SignedInfo100114, SignedInfo100360, SignedInfo100361, SignedInfo100362, SignedInfo100363, SignedInfo100364, SignedInfo101035, SignedInfo101134, CommitmentTx, CommitmentTxSigned, InvoiceInfo, HTLCFindPathInfo, addHTLCInfo, HtlcSignedInfo, ForwardRInfo, SignRInfo, CloseHtlcTxInfo, CloseHtlcTxInfoSigned, IssueFixedAmountInfo, IssueManagedAmoutInfo, OmniSendGrant, OmniSendRevoke, CloseChannelSign, AtomicSwapAccepted, AtomicSwapRequest } from "./pojo";
 import { Result } from "./result";
-import { IAcceptChannel, IConnect, IGetMyChannels, ILogin, IFundingBitcoin, IBitcoinFundingCreated, ISendSignedHex100341, TOnBitcoinFundingCreated, TOnChannelOpenAttempt, IBitcoinFundingSigned, TOnAssetFundingCreated, IAssetFundingSigned, TSendSignedHex101035, TOnCommitmentTransactionCreated, ICommitmentTransactionAcceptedResponse, ISendSignedHex100361Response, TOnAcceptChannel, TOn110353, ICommitmentTransactionCreated, TOn110352, ISendSignedHex100364Response, ISendSignedHex100362Response, ISendSignedHex100363Response } from "./types";
+import { IAcceptChannel, IConnect, IGetMyChannels, ILogin, IFundingBitcoin, IBitcoinFundingCreated, ISendSignedHex100341, TOnBitcoinFundingCreated, TOnChannelOpenAttempt, IBitcoinFundingSigned, TOnAssetFundingCreated, IAssetFundingSigned, TSendSignedHex101035, TOnCommitmentTransactionCreated, ICommitmentTransactionAcceptedResponse, ISendSignedHex100361Response, TOnAcceptChannel, TOn110353, ICommitmentTransactionCreated, TOn110352, ISendSignedHex100364Response, ISendSignedHex100362Response, ISendSignedHex100363Response, IGetProperty } from "./types";
 export default class ObdApi {
     constructor({ url }?: {
         url?: string | undefined;
@@ -133,7 +133,7 @@ export default class ObdApi {
     onSendRevoke(jsonData: any): void;
     getAllBalancesForAddress(address: string): Promise<unknown>;
     onGetAllBalancesForAddress(jsonData: any): void;
-    getProperty(propertyId: string): Promise<unknown>;
+    getProperty(propertyId: string): Promise<Result<IGetProperty>>;
     onGetProperty(jsonData: any): void;
     getBtcBalanceByAddress(address: string): Promise<unknown>;
     onGetBtcBalanceByAddress(jsonData: any): void;
