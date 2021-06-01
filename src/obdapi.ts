@@ -73,7 +73,8 @@ import {
   ISendSignedHex100364Response,
   ISendSignedHex100362Response,
   ISendSignedHex100363Response,
-  IGetProperty
+  IGetProperty,
+  ICloseChannel
 } from "./types";
 
 const DEFAULT_URL = "62.234.216.108:60020";
@@ -92,6 +93,7 @@ export default class ObdApi {
   onOpen: ((data: any) => any) | undefined;
   onMessage: Function | undefined;
   onChannelOpenAttempt: ((data: TOnChannelOpenAttempt) => any) | undefined;
+  onChannelCloseAttempt: ((data: any) => any) | undefined;
   onAcceptChannel: ((data: TOnAcceptChannel) => any) | undefined;
   onBitcoinFundingCreated:
     | ((data: TOnBitcoinFundingCreated) => any)
@@ -114,6 +116,7 @@ export default class ObdApi {
     onOpen,
     onMessage,
     onChannelOpenAttempt,
+    onChannelCloseAttempt,
     onAcceptChannel,
     onBitcoinFundingCreated,
     onAssetFundingCreated,
@@ -132,6 +135,7 @@ export default class ObdApi {
     onOpen: (data: any) => any;
     onMessage: (data: any) => any;
     onChannelOpenAttempt: (data: TOnChannelOpenAttempt) => any;
+    onChannelCloseAttempt: (data: any) => any;
     onAcceptChannel: (data: TOnAcceptChannel) => any;
     onBitcoinFundingCreated: (data: TOnBitcoinFundingCreated) => any;
     onAssetFundingCreated: (data: TOnAssetFundingCreated) => any;
@@ -165,6 +169,8 @@ export default class ObdApi {
       if (onOpen !== undefined) this.onOpen = onOpen;
       if (onChannelOpenAttempt !== undefined)
         this.onChannelOpenAttempt = onChannelOpenAttempt;
+      if (onChannelCloseAttempt !== undefined)
+        this.onChannelCloseAttempt = onChannelCloseAttempt;
       if (onAcceptChannel !== undefined) this.onAcceptChannel = onAcceptChannel;
       if (onBitcoinFundingCreated !== undefined)
         this.onBitcoinFundingCreated = onBitcoinFundingCreated;
@@ -191,7 +197,6 @@ export default class ObdApi {
         // a message was received
         try {
           const jsonData = JSON.parse(e.data);
-          //console.log(jsonData);
           this.getDataFromServer(jsonData);
           if (this.onMessage) this.onMessage(jsonData);
           /*
@@ -201,6 +206,14 @@ export default class ObdApi {
             if (this.onChannelOpenAttempt) this.onChannelOpenAttempt(jsonData);
             /*const { funder_node_address, funder_peer_id, funding_pubkey, is_private, funder_address_index } = jsonData.result;
             this.openChannel(funder_node_address, funder_peer_id, { funding_pubkey, is_private, funder_address_index }, () => null);*/
+          }
+
+          /*
+          Your peer is attempting to cooperatively close a channel
+           */
+          if (jsonData.type == -100038 || jsonData.type == -110038) {
+            if (this.onChannelCloseAttempt)
+              this.onChannelCloseAttempt(jsonData);
           }
 
           /*
@@ -2462,7 +2475,7 @@ export default class ObdApi {
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     channel_id: string
-  ) {
+  ): Promise<Result<ICloseChannel>> {
     if (this.isNotString(recipient_node_peer_id)) {
       return err("error recipient_node_peer_id");
     }
