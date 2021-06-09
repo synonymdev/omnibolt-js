@@ -20,4 +20,12 @@ const obdapi = new ObdApi();
 const connectResponse = await obdapi.connect();
 ```
 
+## API Documentation
+
+ - https://api.omnilab.online/
+ 
+## Debugging Tool
+
+ - https://github.com/omnilaboratory/DebuggingTool/
+
 
