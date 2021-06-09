@@ -786,7 +786,7 @@ export default class ObdApi {
   /**
    * MsgType_Core_Omni_ListProperties_2117
    */
-  async listProperties() {
+  async listProperties(): Promise<Result<any>> {
     let msg = new Message();
     msg.type = this.messageType.MsgType_Core_Omni_ListProperties_2117;
     return new Promise(async (resolve) => this.sendData(msg, resolve));
@@ -798,7 +798,7 @@ export default class ObdApi {
    * MsgType_Core_Omni_FundingAsset_2120
    * @param info OmniFundingAssetInfo
    */
-  async fundingAsset(info: OmniFundingAssetInfo) {
+  async fundingAsset(info: OmniFundingAssetInfo): Promise<Result<any>> {
     if (this.isNotString(info.from_address)) {
       return err("empty from_address");
     }
@@ -828,7 +828,7 @@ export default class ObdApi {
    * MsgType_Core_Omni_Send_2121
    * @param info OmniSendAssetInfo
    */
-  async sendAsset(info: OmniSendAssetInfo) {
+  async sendAsset(info: OmniSendAssetInfo): Promise<Result<any>> {
     if (this.isNotString(info.from_address)) {
       return err("empty from_address");
     }
@@ -854,7 +854,7 @@ export default class ObdApi {
   /**
    * MsgType_Mnemonic_CreateAddress_3000
    */
-  async genAddressFromMnemonic() {
+  async genAddressFromMnemonic(): Promise<Result<any>> {
     let msg = new Message();
     msg.type = this.messageType.MsgType_Mnemonic_CreateAddress_3000;
     return new Promise(async (resolve) => this.sendData(msg, resolve));
@@ -866,7 +866,7 @@ export default class ObdApi {
    * MsgType_Mnemonic_GetAddressByIndex_3001
    * @param index:number
    */
-  async getAddressInfo(index: number) {
+  async getAddressInfo(index: number): Promise<Result<any>> {
     if (index == null || index < 0) {
       return err("error index");
     }
@@ -971,7 +971,7 @@ export default class ObdApi {
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: AcceptChannelInfo
-  ) {
+  ): Promise<Result<any>> {
     if (this.isNotString(recipient_node_peer_id)) {
       return err("error recipient_node_peer_id");
     }
@@ -1014,7 +1014,7 @@ export default class ObdApi {
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: AssetFundingCreatedInfo
-  ) {
+  ): Promise<Result<any>> {
     if (this.isNotString(recipient_node_peer_id)) {
       return err("error recipient_node_peer_id");
     }
@@ -1051,7 +1051,7 @@ export default class ObdApi {
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     signed_hex: string
-  ) {
+  ): Promise<Result<any>> {
     if (this.isNotString(recipient_node_peer_id)) {
       return err("error recipient_node_peer_id");
     }
@@ -1072,7 +1072,7 @@ export default class ObdApi {
    * MsgType_ClientSign_AssetFunding_AliceSignRD_1134
    * @param info      SignedInfo101134
    */
-  async sendSignedHex101134(info: SignedInfo101134) {
+  async sendSignedHex101134(info: SignedInfo101134): Promise<Result<any>> {
     if (this.isNotString(info.channel_id)) {
       return err("empty channel_id");
     }
@@ -1198,7 +1198,7 @@ export default class ObdApi {
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: SignedInfo100360
-  ) {
+  ): Promise<Result<any>> {
     if (this.isNotString(recipient_node_peer_id)) {
       return err("error recipient_node_peer_id");
     }
@@ -1379,7 +1379,7 @@ export default class ObdApi {
    * MsgType_HTLC_Invoice_402
    * @param info InvoiceInfo
    */
-  async addInvoice(info: InvoiceInfo) {
+  async addInvoice(info: InvoiceInfo): Promise<Result<any>> {
     if (info.property_id == null || info.property_id <= 0) {
       return err("empty property_id");
     }
@@ -1408,7 +1408,7 @@ export default class ObdApi {
    * MsgType_HTLC_FindPath_401
    * @param info HTLCFindPathInfo
    */
-  async HTLCFindPath(info: HTLCFindPathInfo) {
+  async HTLCFindPath(info: HTLCFindPathInfo): Promise<Result<any>> {
     if (!info.is_inv_pay) {
       if (info.property_id == null || info.property_id <= 0) {
         return err("empty property_id");
@@ -1443,7 +1443,7 @@ export default class ObdApi {
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: addHTLCInfo
-  ) {
+  ): Promise<Result<any>> {
     if (this.isNotString(recipient_node_peer_id)) {
       return err("error recipient_node_peer_id");
     }
@@ -1503,7 +1503,7 @@ export default class ObdApi {
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: SignedInfo100100
-  ) {
+  ): Promise<Result<any>> {
     if (this.isNotString(recipient_node_peer_id)) {
       return err("error recipient_node_peer_id");
     }
@@ -1534,7 +1534,7 @@ export default class ObdApi {
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: SignedInfo100101
-  ) {
+  ): Promise<Result<any>> {
     if (this.isNotString(recipient_node_peer_id)) {
       return err("error recipient_node_peer_id");
     }
@@ -1559,7 +1559,7 @@ export default class ObdApi {
    * MsgType_HTLC_ClientSign_Alice_C3b_102
    * @param info  SignedInfo100102
    */
-  async sendSignedHex100102(info: SignedInfo100102) {
+  async sendSignedHex100102(info: SignedInfo100102): Promise<Result<any>> {
     if (this.isNotString(info.channel_id)) {
       return err("empty channel_id");
     }
@@ -1580,7 +1580,7 @@ export default class ObdApi {
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: SignedInfo100103
-  ) {
+  ): Promise<Result<any>> {
     if (this.isNotString(recipient_node_peer_id)) {
       return err("error recipient_node_peer_id");
     }
@@ -1605,7 +1605,7 @@ export default class ObdApi {
    * MsgType_HTLC_ClientSign_Bob_C3bSub_104
    * @param info  SignedInfo100104
    */
-  async sendSignedHex100104(info: SignedInfo100104) {
+  async sendSignedHex100104(info: SignedInfo100104): Promise<Result<any>> {
     if (this.isNotString(info.channel_id)) {
       return err("empty channel_id");
     }
@@ -1626,11 +1626,11 @@ export default class ObdApi {
    * @param recipient_user_peer_id string
    * @param info  SignedInfo100105
    */
-  sendSignedHex100105(
+  async sendSignedHex100105(
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: SignedInfo100105
-  ) {
+  ): Promise<Result<any>> {
     if (this.isNotString(recipient_node_peer_id)) {
       return err("error recipient_node_peer_id");
     }
@@ -1657,11 +1657,11 @@ export default class ObdApi {
    * @param recipient_user_peer_id string
    * @param info  SignedInfo100106
    */
-  sendSignedHex100106(
+  async sendSignedHex100106(
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: SignedInfo100106
-  ) {
+  ): Promise<Result<any>> {
     if (this.isNotString(recipient_node_peer_id)) {
       return err("error recipient_node_peer_id");
     }
@@ -1688,11 +1688,11 @@ export default class ObdApi {
    * @param recipient_user_peer_id string
    * @param info  SignedInfo100110
    */
-  sendSignedHex100110(
+  async sendSignedHex100110(
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: SignedInfo100110
-  ) {
+  ): Promise<Result<any>> {
     if (this.isNotString(recipient_node_peer_id)) {
       return err("error recipient_node_peer_id");
     }
@@ -1723,7 +1723,7 @@ export default class ObdApi {
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: SignedInfo100111
-  ) {
+  ): Promise<Result<any>> {
     if (this.isNotString(recipient_node_peer_id)) {
       return err("error recipient_node_peer_id");
     }
@@ -1748,7 +1748,7 @@ export default class ObdApi {
    * MsgType_HTLC_Close_ClientSign_Alice_C4b_112
    * @param info  SignedInfo100112
    */
-  async sendSignedHex100112(info: SignedInfo100112) {
+  async sendSignedHex100112(info: SignedInfo100112): Promise<Result<any>> {
     if (this.isNotString(info.channel_id)) {
       return err("empty channel_id");
     }
@@ -1769,7 +1769,7 @@ export default class ObdApi {
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: SignedInfo100113
-  ) {
+  ): Promise<Result<any>> {
     if (this.isNotString(recipient_node_peer_id)) {
       return err("error recipient_node_peer_id");
     }
@@ -1794,7 +1794,7 @@ export default class ObdApi {
    * MsgType_HTLC_Close_ClientSign_Bob_C4bSubResult_114
    * @param info  SignedInfo100114
    */
-  async sendSignedHex100114(info: SignedInfo100114) {
+  async sendSignedHex100114(info: SignedInfo100114): Promise<Result<any>> {
     if (this.isNotString(info.channel_id)) {
       return err("empty channel_id");
     }
@@ -1815,7 +1815,7 @@ export default class ObdApi {
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: HtlcSignedInfo
-  ) {
+  ): Promise<Result<any>> {
     if (this.isNotString(recipient_node_peer_id)) {
       return err("error recipient_node_peer_id");
     }
@@ -1853,7 +1853,7 @@ export default class ObdApi {
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: ForwardRInfo
-  ) {
+  ): Promise<Result<any>> {
     if (this.isNotString(recipient_node_peer_id)) {
       return err("error recipient_node_peer_id");
     }
@@ -1888,7 +1888,7 @@ export default class ObdApi {
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: SignRInfo
-  ) {
+  ): Promise<Result<any>> {
     if (this.isNotString(recipient_node_peer_id)) {
       return err("error recipient_node_peer_id");
     }
@@ -1922,7 +1922,7 @@ export default class ObdApi {
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: CloseHtlcTxInfo
-  ) {
+  ): Promise<Result<any>> {
     if (this.isNotString(recipient_node_peer_id)) {
       return err("error recipient_node_peer_id");
     }
@@ -1966,7 +1966,7 @@ export default class ObdApi {
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: CloseHtlcTxInfoSigned
-  ) {
+  ): Promise<Result<any>> {
     if (this.isNotString(recipient_node_peer_id)) {
       return err("error recipient_node_peer_id");
     }
@@ -2007,7 +2007,7 @@ export default class ObdApi {
    * MsgType_Core_Omni_GetTransaction_2118
    * @param txid string
    */
-  async getTransaction(txid: string) {
+  async getTransaction(txid: string): Promise<Result<any>> {
     if (this.isNotString(txid)) {
       return err("empty txid");
     }
@@ -2023,7 +2023,7 @@ export default class ObdApi {
    * MsgType_Core_Omni_CreateNewTokenFixed_2113
    * @param info IssueFixedAmountInfo
    */
-  async issueFixedAmount(info: IssueFixedAmountInfo): Promise<Result<unknown>> {
+  async issueFixedAmount(info: IssueFixedAmountInfo): Promise<Result<any>> {
     if (this.isNotString(info.from_address)) {
       return err("empty from_address");
     }
@@ -2055,7 +2055,7 @@ export default class ObdApi {
    * MsgType_Core_Omni_CreateNewTokenManaged_2114
    * @param info IssueManagedAmoutInfo
    */
-  async issueManagedAmout(info: IssueManagedAmoutInfo) {
+  async issueManagedAmout(info: IssueManagedAmoutInfo): Promise<Result<any>> {
     if (this.isNotString(info.from_address)) {
       return err("empty from_address");
     }
@@ -2083,7 +2083,7 @@ export default class ObdApi {
    * MsgType_Core_Omni_GrantNewUnitsOfManagedToken_2115
    * @param info OmniSendGrant
    */
-  async sendGrant(info: OmniSendGrant) {
+  async sendGrant(info: OmniSendGrant): Promise<Result<any>> {
     if (this.isNotString(info.from_address)) {
       return err("empty from_address");
     }
@@ -2109,7 +2109,7 @@ export default class ObdApi {
    * MsgType_Core_Omni_RevokeUnitsOfManagedToken_2116
    * @param info OmniSendRevoke
    */
-  async sendRevoke(info: OmniSendRevoke) {
+  async sendRevoke(info: OmniSendRevoke): Promise<Result<any>> {
     if (this.isNotString(info.from_address)) {
       return err("empty from_address");
     }
@@ -2134,7 +2134,7 @@ export default class ObdApi {
    * MsgType_Core_Omni_Getbalance_2112
    * @param address string
    */
-  async getAllBalancesForAddress(address: string) {
+  async getAllBalancesForAddress(address: string): Promise<Result<any>> {
     if (this.isNotString(address)) {
       return err("empty address");
     }
@@ -2166,7 +2166,7 @@ export default class ObdApi {
    * MsgType_Core_BalanceByAddress_2108
    * @param address string
    */
-  async getBtcBalanceByAddress(address: string) {
+  async getBtcBalanceByAddress(address: string): Promise<Result<any>> {
     if (this.isNotString(address)) {
       return err("empty address");
     }
@@ -2182,7 +2182,7 @@ export default class ObdApi {
    * MsgType_Core_Btc_ImportPrivKey_2111
    * @param privkey string
    */
-  async importPrivKey(privkey: string) {
+  async importPrivKey(privkey: string): Promise<Result<any>> {
     if (this.isNotString(privkey)) {
       return err("empty privkey");
     }
@@ -2197,7 +2197,7 @@ export default class ObdApi {
   /**
    * MsgType_HTLC_CreatedRAndHInfoList_N4001
    */
-  async getAddHTLCRandHInfoList() {
+  async getAddHTLCRandHInfoList(): Promise<Result<any>> {
     let msg = new Message();
     //msg.type = this.messageType.MsgType_HTLC_CreatedRAndHInfoList_N4001;
     return new Promise(async (resolve) => this.sendData(msg, resolve));
@@ -2208,7 +2208,7 @@ export default class ObdApi {
   /**
    * MsgType_HTLC_SignedRAndHInfoList_N4101
    */
-  async getHtlcSignedRandHInfoList() {
+  async getHtlcSignedRandHInfoList(): Promise<Result<any>> {
     let msg = new Message();
     // msg.type = this.messageType.MsgType_HTLC_SignedRAndHInfoList_N4101;
     return new Promise(async (resolve) => this.sendData(msg, resolve));
@@ -2220,7 +2220,7 @@ export default class ObdApi {
    * MsgType_HTLC_GetRFromLCommitTx_N4103
    * @param channel_id string
    */
-  async getRFromCommitmentTx(channel_id: string) {
+  async getRFromCommitmentTx(channel_id: string): Promise<Result<any>> {
     if (this.isNotString(channel_id)) {
       return err("empty channel_id");
     }
@@ -2236,7 +2236,7 @@ export default class ObdApi {
    * MsgType_HTLC_GetPathInfoByH_N4104
    * @param h string
    */
-  async getPathInfoByH(h: string) {
+  async getPathInfoByH(h: string): Promise<Result<any>> {
     if (this.isNotString(h)) {
       return err("empty h");
     }
@@ -2252,7 +2252,7 @@ export default class ObdApi {
    * MsgType_HTLC_GetRInfoByHOfOwner_N4105
    * @param h string
    */
-  async getRByHOfReceiver(h: string) {
+  async getRByHOfReceiver(h: string): Promise<Result<any>> {
     if (this.isNotString(h)) {
       return err("empty h");
     }
@@ -2268,7 +2268,9 @@ export default class ObdApi {
    * MsgType_CommitmentTx_LatestCommitmentTxByChanId_3203
    * @param channel_id string
    */
-  async getLatestCommitmentTransaction(channel_id: string) {
+  async getLatestCommitmentTransaction(
+    channel_id: string
+  ): Promise<Result<any>> {
     if (this.isNotString(channel_id)) {
       return err("empty channel_id");
     }
@@ -2284,7 +2286,7 @@ export default class ObdApi {
    * MsgType_CommitmentTx_ItemsByChanId_3200
    * @param channel_id string
    */
-  async getItemsByChannelId(channel_id: string) {
+  async getItemsByChannelId(channel_id: string): Promise<Result<any>> {
     if (this.isNotString(channel_id)) {
       return err("empty channel_id");
     }
@@ -2328,7 +2330,7 @@ export default class ObdApi {
   /**
    * MsgType_GetMiniBtcFundAmount_2006
    */
-  async getAmountOfRechargeBTC() {
+  async getAmountOfRechargeBTC(): Promise<Result<any>> {
     let msg = new Message();
     msg.type = this.messageType.MsgType_GetMiniBtcFundAmount_2006;
     return new Promise(async (resolve) => this.sendData(msg, resolve));
@@ -2340,7 +2342,9 @@ export default class ObdApi {
    * MsgType_GetChannelInfoByChannelId_3154
    * @param channel_id string
    */
-  async getChannelDetailFromChannelID(channel_id: string) {
+  async getChannelDetailFromChannelID(
+    channel_id: string
+  ): Promise<Result<any>> {
     if (this.isNotString(channel_id)) {
       return err("empty channel_id");
     }
@@ -2357,7 +2361,7 @@ export default class ObdApi {
    * MsgType_GetChannelInfoByDbId_3155
    * @param id number
    */
-  async getChannelDetailFromDatabaseID(id: number) {
+  async getChannelDetailFromDatabaseID(id: number): Promise<Result<any>> {
     if (id == null || id <= 0) {
       return err("error id");
     }
@@ -2373,7 +2377,9 @@ export default class ObdApi {
    * MsgType_CommitmentTx_AllBRByChanId_3208
    * @param channel_id string
    */
-  async getAllBreachRemedyTransactions(channel_id: string) {
+  async getAllBreachRemedyTransactions(
+    channel_id: string
+  ): Promise<Result<any>> {
     if (this.isNotString(channel_id)) {
       return err("empty channel_id");
     }
@@ -2389,7 +2395,7 @@ export default class ObdApi {
    * MsgType_CommitmentTx_ItemsByChanId_3200
    * @param channel_id string
    */
-  async getAllCommitmentTx(channel_id: string) {
+  async getAllCommitmentTx(channel_id: string): Promise<Result<any>> {
     if (this.isNotString(channel_id)) {
       return err("empty channel_id");
     }
@@ -2405,7 +2411,9 @@ export default class ObdApi {
    * MsgType_CommitmentTx_LatestRDByChanId_3204
    * @param channel_id string
    */
-  async getLatestRevockableDeliveryTransaction(channel_id: string) {
+  async getLatestRevockableDeliveryTransaction(
+    channel_id: string
+  ): Promise<Result<any>> {
     if (this.isNotString(channel_id)) {
       return err("empty channel_id");
     }
@@ -2421,7 +2429,9 @@ export default class ObdApi {
    * MsgType_CommitmentTx_LatestBRByChanId_3205
    * @param channel_id string
    */
-  async getLatestBreachRemedyTransaction(channel_id: string) {
+  async getLatestBreachRemedyTransaction(
+    channel_id: string
+  ): Promise<Result<any>> {
     if (this.isNotString(channel_id)) {
       return err("empty channel_id");
     }
@@ -2437,7 +2447,7 @@ export default class ObdApi {
    * MsgType_CommitmentTx_SendSomeCommitmentById_3206
    * @param id number
    */
-  async sendSomeCommitmentById(id: number) {
+  async sendSomeCommitmentById(id: number): Promise<Result<any>> {
     if (id == null || id < 0) {
       return err("error id");
     }
@@ -2453,7 +2463,9 @@ export default class ObdApi {
    * MsgType_CommitmentTx_AllRDByChanId_3207
    * @param channel_id string
    */
-  async getAllRevockableDeliveryTransactions(channel_id: string) {
+  async getAllRevockableDeliveryTransactions(
+    channel_id: string
+  ): Promise<Result<any>> {
     if (this.isNotString(channel_id)) {
       return err("empty channel_id");
     }
@@ -2507,7 +2519,7 @@ export default class ObdApi {
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: CloseChannelSign
-  ) {
+  ): Promise<Result<any>> {
     if (this.isNotString(recipient_node_peer_id)) {
       return err("error recipient_node_peer_id");
     }
@@ -2550,7 +2562,7 @@ export default class ObdApi {
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: AtomicSwapRequest
-  ) {
+  ): Promise<Result<any>> {
     if (this.isNotString(recipient_node_peer_id)) {
       return err("error recipient_node_peer_id");
     }
@@ -2603,7 +2615,7 @@ export default class ObdApi {
     recipient_node_peer_id: string,
     recipient_user_peer_id: string,
     info: AtomicSwapAccepted
-  ) {
+  ): Promise<Result<any>> {
     if (this.isNotString(recipient_node_peer_id)) {
       return err("error recipient_node_peer_id");
     }
