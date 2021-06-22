@@ -1,3 +1,4 @@
+import { ECPairInterface } from "bitcoinjs-lib";
 export interface IConnect {
     recipient_node_peer_id: string;
     recipient_user_peer_id: string;
@@ -572,4 +573,109 @@ export interface ICloseChannel {
     to_self_delay: number;
     value: number | null;
     value_type: string;
+}
+export interface IAddressContent {
+    index: number;
+    path: string;
+    address: string;
+    scriptHash: string;
+    publicKey: string;
+}
+export interface ISigningDataContent {
+    fundingAddress: IAddressContent;
+    addressIndex: IAddressContent;
+    last_temp_address: IAddressContent;
+    rsmc_temp_address: IAddressContent;
+    htlc_temp_address: IAddressContent;
+    htlc_temp_address_for_he1b: IAddressContent;
+    kTbSignedHex: string;
+    funding_txid: string;
+    kTempPrivKey: string;
+    kTbSignedHexCR110351: string;
+    kTbSignedHexRR110351: string;
+}
+export interface ISigningData {
+    [key: string]: ISigningDataContent;
+}
+export declare type TOmniboltCheckpoints = "onChannelOpenAttempt" | "channelAccept" | "onAcceptChannel" | "fundBitcoin" | "onFundBitcoin" | "onBitcoinFundingCreated" | "onAssetFundingCreated" | "sendSignedHex101035" | "onCommitmentTransactionCreated" | "commitmentTransactionAccepted" | "on110353" | "on110352" | "htlcFindPath" | "onHtlcFindPath" | "addHtlc" | "onAddHtlc" | "htlcSIgned" | "onHtlcSigned" | "forwardR" | "onForwardR" | "signR" | "onSignR" | "closeHtlc" | "onCloseHtlc" | "closeHtlcSigned" | "onCloseHtlcSigned" | "onChannelCloseAttempt" | "sendSignedHex100363";
+export interface ICheckpoint {
+    checkpoint: TOmniboltCheckpoints;
+    data: any;
+}
+export interface ICheckpoints {
+    [key: string]: ICheckpoint;
+}
+export interface IData {
+    nextAddressIndex: IAddressContent;
+    signingData: ISigningData;
+    checkpoints: ICheckpoints;
+}
+export interface ISaveData {
+    nextAddressIndex: IAddressContent;
+    signingData: ISigningData;
+    checkpoints: ICheckpoints;
+}
+export declare type TAvailableNetworks = "bitcoin" | "bitcoinTestnet";
+export interface IGetAddress {
+    keyPair: ECPairInterface | undefined;
+    network: INetwork | undefined;
+    type?: "bech32" | "segwit" | "legacy";
+}
+export interface INetwork {
+    messagePrefix: string;
+    bech32: string;
+    bip32: {
+        public: number;
+        private: number;
+    };
+    pubKeyHash: number;
+    scriptHash: number;
+    wif: number;
+}
+export declare const addressContent: {
+    index: number;
+    path: string;
+    address: string;
+    scriptHash: string;
+    publicKey: string;
+};
+export interface IChannelSigningData {
+    fundingAddress: IAddressContent;
+    addressIndex: IAddressContent;
+    last_temp_address: IAddressContent;
+    rsmc_temp_address: IAddressContent;
+    htlc_temp_address: IAddressContent;
+    htlc_temp_address_for_he1b: IAddressContent;
+    kTbSignedHex: string;
+    funding_txid: string;
+    kTempPrivKey: string;
+    kTbSignedHexCR110351: string;
+    kTbSignedHexRR110351: string;
+}
+export declare const channelSigningData: IChannelSigningData;
+export interface IListenerParams<TStart, TSuccess> {
+    start: (data: TStart) => any;
+    success: (data: TSuccess) => any;
+    failure: (data: any) => any;
+}
+export interface ISignP2SH {
+    is_first_sign: boolean;
+    txhex: string;
+    pubkey_1: string;
+    pubkey_2: string;
+    privkey: string;
+    inputs: any;
+    selectedNetwork?: TAvailableNetworks | undefined;
+}
+export interface ISendSignedHex100363 {
+    data: ISendSignedHex100362Response;
+    privkey: string;
+    channelId: string;
+    nodeID: string;
+    userID: string;
+}
+export interface ICommitmentTransactionAcceptedCheckpointData {
+    info: ICommitmentTransactionAcceptedResponse;
+    nodeID: string;
+    userID: string;
 }

@@ -1,6 +1,6 @@
 import { MessageType, Message, P2PPeer, BtcFundingInfo, FundingBtcCreated, FundingBtcSigned, OmniFundingAssetInfo, OmniSendAssetInfo, OpenChannelInfo, AcceptChannelInfo, AssetFundingCreatedInfo, AssetFundingSignedInfo, SignedInfo100100, SignedInfo100101, SignedInfo100102, SignedInfo100103, SignedInfo100104, SignedInfo100105, SignedInfo100106, SignedInfo100110, SignedInfo100111, SignedInfo100112, SignedInfo100113, SignedInfo100114, SignedInfo100360, SignedInfo100361, SignedInfo100362, SignedInfo100363, SignedInfo100364, SignedInfo101035, SignedInfo101134, CommitmentTx, CommitmentTxSigned, InvoiceInfo, HTLCFindPathInfo, addHTLCInfo, HtlcSignedInfo, ForwardRInfo, SignRInfo, CloseHtlcTxInfo, CloseHtlcTxInfoSigned, IssueFixedAmountInfo, IssueManagedAmoutInfo, OmniSendGrant, OmniSendRevoke, CloseChannelSign, AtomicSwapAccepted, AtomicSwapRequest } from "./pojo";
 import { Result } from "./result";
-import { IAcceptChannel, IConnect, IGetMyChannels, ILogin, IFundingBitcoin, IBitcoinFundingCreated, ISendSignedHex100341, TOnBitcoinFundingCreated, TOnChannelOpenAttempt, IBitcoinFundingSigned, TOnAssetFundingCreated, IAssetFundingSigned, TSendSignedHex101035, TOnCommitmentTransactionCreated, ICommitmentTransactionAcceptedResponse, ISendSignedHex100361Response, TOnAcceptChannel, TOn110353, ICommitmentTransactionCreated, TOn110352, ISendSignedHex100364Response, ISendSignedHex100362Response, ISendSignedHex100363Response, IGetProperty, ICloseChannel } from "./types";
+import { IAcceptChannel, IConnect, IGetMyChannels, ILogin, IFundingBitcoin, IBitcoinFundingCreated, ISendSignedHex100341, TOnBitcoinFundingCreated, TOnChannelOpenAttempt, IBitcoinFundingSigned, TOnAssetFundingCreated, IAssetFundingSigned, TSendSignedHex101035, TOnCommitmentTransactionCreated, ICommitmentTransactionAcceptedResponse, ISendSignedHex100361Response, TOnAcceptChannel, TOn110353, ICommitmentTransactionCreated, TOn110352, ISendSignedHex100364Response, ISendSignedHex100362Response, ISendSignedHex100363Response, IGetProperty, ICloseChannel, ISaveData, TAvailableNetworks, IData, IListenerParams, ISendSignedHex101035, TOmniboltCheckpoints, ISendSignedHex100363, ICommitmentTransactionAcceptedCheckpointData } from "./types";
 export default class ObdApi {
     constructor({ url }?: {
         url?: string | undefined;
@@ -10,36 +10,42 @@ export default class ObdApi {
     messageType: MessageType;
     ws: WebSocket | any;
     defaultUrl: string;
+    omniboltServer: string;
+    loginPhrase: string;
+    mnemonic: string;
+    data: IData;
+    saveData: (data: IData) => any;
+    updateCheckpoint: Function;
+    refreshChannel: Function;
+    listeners: {
+        [key: string]: IListenerParams<any, any>;
+    } | undefined;
+    selectedNetwork: TAvailableNetworks;
     globalCallback: Function | undefined;
     callbackMap: Map<number, Function>;
     onOpen: ((data: any) => any) | undefined;
     onMessage: Function | undefined;
-    onChannelOpenAttempt: ((data: TOnChannelOpenAttempt) => any) | undefined;
     onChannelCloseAttempt: ((data: any) => any) | undefined;
-    onAcceptChannel: ((data: TOnAcceptChannel) => any) | undefined;
-    onBitcoinFundingCreated: ((data: TOnBitcoinFundingCreated) => any) | undefined;
-    onAssetFundingCreated: ((data: TOnAssetFundingCreated) => any) | undefined;
-    onCommitmentTransactionCreated: ((data: TOnCommitmentTransactionCreated) => any) | undefined;
-    on110353: ((data: TOn110353) => any) | undefined;
-    on110352: ((data: TOn110352) => any) | undefined;
     onChannelClose: Function | undefined;
     loginData: {
         nodeAddress: string;
         nodePeerId: string;
         userPeerId: string;
     };
-    connect({ url, onOpen, onMessage, onChannelOpenAttempt, onChannelCloseAttempt, onAcceptChannel, onBitcoinFundingCreated, onAssetFundingCreated, onCommitmentTransactionCreated, on110353, on110352, onChannelClose, onError, onClose, onAddHTLC, onForwardR, onSignR, onCloseHTLC }: {
+    connect({ url, data, saveData, loginPhrase, mnemonic, listeners, selectedNetwork, onOpen, onMessage, onChannelCloseAttempt, onChannelClose, onError, onClose, onAddHTLC, onForwardR, onSignR, onCloseHTLC }: {
         url: string | undefined;
+        data: IData | undefined;
+        saveData: (data: ISaveData) => void;
+        loginPhrase: string;
+        mnemonic: string;
+        listeners: {
+            [key: string]: IListenerParams<any, any>;
+        } | undefined;
+        selectedNetwork: TAvailableNetworks;
         onOpen: (data: any) => any;
         onMessage: (data: any) => any;
-        onChannelOpenAttempt: (data: TOnChannelOpenAttempt) => any;
         onChannelCloseAttempt: (data: any) => any;
-        onAcceptChannel: (data: TOnAcceptChannel) => any;
-        onBitcoinFundingCreated: (data: TOnBitcoinFundingCreated) => any;
-        onAssetFundingCreated: (data: TOnAssetFundingCreated) => any;
-        onCommitmentTransactionCreated: (data: TOnCommitmentTransactionCreated) => any;
-        on110353: (data: TOn110353) => any;
-        on110352: (data: TOn110352) => any;
+        onAcceptChannel?: (data: TOnAcceptChannel) => any;
         onChannelClose: (data: any) => any;
         onError: (e: string | object) => any;
         onClose: (code: number, reason: string) => any;
@@ -79,6 +85,15 @@ export default class ObdApi {
     openChannel(recipient_node_peer_id: string, recipient_user_peer_id: string, info: OpenChannelInfo): Promise<Result<string>>;
     onOpenChannel(jsonData: any): void;
     acceptChannel(recipient_node_peer_id: string, recipient_user_peer_id: string, info: AcceptChannelInfo): Promise<Result<IAcceptChannel>>;
+    onChannelOpenAttempt(data: TOnChannelOpenAttempt): Promise<any>;
+    onAcceptChannel(data: TOnAcceptChannel): Promise<void>;
+    onBitcoinFundingCreated(data: TOnBitcoinFundingCreated): Promise<Result<IBitcoinFundingSigned>>;
+    onAssetFundingCreated(data: TOnAssetFundingCreated): Promise<Result<ISendSignedHex101035>>;
+    onCommitmentTransactionCreated(data: TOnCommitmentTransactionCreated): Promise<Result<any>>;
+    handleCommitmentTransactionAccepted({ info, userID, nodeID }: ICommitmentTransactionAcceptedCheckpointData): Promise<Result<ISendSignedHex100361Response>>;
+    on110352(data: TOn110352): Promise<Result<ISendSignedHex100363Response>>;
+    handleSendSignedHex100363({ data, privkey, channelId, nodeID, userID }: ISendSignedHex100363): Promise<Result<ISendSignedHex100363Response>>;
+    on110353(data: TOn110353): Promise<Result<ISendSignedHex100364Response>>;
     checkChannelAddessExist(recipient_node_peer_id: string, recipient_user_peer_id: string, info: AcceptChannelInfo): Promise<Result<any>>;
     onCheckChannelAddessExist(jsonData: any): void;
     assetFundingCreated(recipient_node_peer_id: string, recipient_user_peer_id: string, info: AssetFundingCreatedInfo): Promise<Result<any>>;
@@ -86,7 +101,13 @@ export default class ObdApi {
     sendSignedHex101134(info: SignedInfo101134): Promise<Result<any>>;
     assetFundingSigned(recipient_node_peer_id: string, recipient_user_peer_id: string, info: AssetFundingSignedInfo): Promise<Result<IAssetFundingSigned>>;
     onAssetFundingSigned(jsonData: any): void;
-    sendSignedHex101035(recipient_node_peer_id: string, recipient_user_peer_id: string, info: SignedInfo101035): Promise<Result<TSendSignedHex101035>>;
+    sendSignedHex101035({ data, channelId, recipient_node_peer_id, recipient_user_peer_id }: {
+        data: IAssetFundingSigned;
+        channelId: string;
+        recipient_node_peer_id: string;
+        recipient_user_peer_id: string;
+    }): Promise<Result<TSendSignedHex101035>>;
+    handleSendSignedHex101035(recipient_node_peer_id: string, recipient_user_peer_id: string, info: SignedInfo101035): Promise<Result<TSendSignedHex101035>>;
     commitmentTransactionCreated(recipient_node_peer_id: string, recipient_user_peer_id: string, info: CommitmentTx): Promise<Result<ICommitmentTransactionCreated>>;
     sendSignedHex100360(recipient_node_peer_id: string, recipient_user_peer_id: string, info: SignedInfo100360): Promise<Result<any>>;
     commitmentTransactionAccepted(recipient_node_peer_id: string, recipient_user_peer_id: string, info: CommitmentTxSigned): Promise<Result<ICommitmentTransactionAcceptedResponse>>;
@@ -177,9 +198,25 @@ export default class ObdApi {
     onGetAllRevockableDeliveryTransactions(jsonData: any): void;
     closeChannel(recipient_node_peer_id: string, recipient_user_peer_id: string, channel_id: string): Promise<Result<ICloseChannel>>;
     onCloseChannel(jsonData: any): void;
-    closeChannelSigned(recipient_node_peer_id: string, recipient_user_peer_id: string, info: CloseChannelSign): Promise<Result<unknown>>;
+    closeChannelSigned(recipient_node_peer_id: string, recipient_user_peer_id: string, info: CloseChannelSign): Promise<Result<any>>;
     onCloseChannelSigned(jsonData: any): void;
     atomicSwap(recipient_node_peer_id: string, recipient_user_peer_id: string, info: AtomicSwapRequest): Promise<Result<any>>;
     atomicSwapAccepted(recipient_node_peer_id: string, recipient_user_peer_id: string, info: AtomicSwapAccepted): Promise<Result<any>>;
+    sendOmniAsset: ({ channelId, amount, recipient_node_peer_id, recipient_user_peer_id }: {
+        channelId: string;
+        amount: number;
+        recipient_node_peer_id: string;
+        recipient_user_peer_id: string;
+    }) => Promise<Result<any>>;
     isNotString(str: String): boolean;
+    listener(key: string, method: "start" | "failure" | "success", data?: any): Result<any>;
+    updateOmniboltCheckpoint({ channelId, checkpoint, data }: {
+        channelId: string;
+        checkpoint: TOmniboltCheckpoints;
+        data: any;
+    }, save?: boolean): void;
+    clearOmniboltCheckpoint({ channelId }: {
+        channelId: string;
+    }): void;
+    resumeFromCheckpoints(): Promise<void>;
 }

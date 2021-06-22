@@ -4,13 +4,20 @@
     "module": "commonjs",
     "outDir": "./lib",
     "declarationDir": "./lib/types",
-    "lib": ["es2017", "dom"],
     "removeComments": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "isolatedModules": false,
     "resolveJsonModule": true,
     "noImplicitAny": false,
+    "lib": [
+      "es6",
+      "es2017",
+      "esnext",
+      "dom"
+    ],
+    "moduleResolution": "node",
+    "noEmit": true,
     "declaration": true,
     "strict": true,
     "allowJs": true,
@@ -19,11 +26,9 @@
     "strictPropertyInitialization": true,
     "noImplicitThis": true,
     "alwaysStrict": true,
-    "noUnusedLocals": true
+    "noUnusedLocals": true,
+    "skipLibCheck": true
     //"noUnusedParameters": true
   },
-  "include": [
-    "src/**/*.ts"
-  ],
   "exclude": ["node_modules"]
 }
