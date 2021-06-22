@@ -91,7 +91,6 @@ const DEFAULT_URL = '62.234.216.108:60020';
 export default class ObdApi {
 	constructor({
 		url = DEFAULT_URL,
-		omniboltServer = '',
 		loginPhrase = '',
 		mnemonic = '',
 		data = defaultDataShape,
@@ -100,16 +99,14 @@ export default class ObdApi {
 		selectedNetwork,
 	}: {
 		url: string;
-		omniboltServer: string;
 		loginPhrase: string;
 		mnemonic: string;
 		data: ISaveData;
 		saveData: (data: ISaveData) => any;
-		listeners: {};
+		listeners: IListeners | {};
 		selectedNetwork: TAvailableNetworks;
 	}) {
-		this.defaultUrl = url;
-		this.omniboltServer = omniboltServer; //Omnibolt server to connect to.
+		this.defaultUrl = url; //Omnibolt server to connect to.
 		this.loginPhrase = loginPhrase; //Mnemonic phrase used to login to the omnibolt server.
 		this.mnemonic = mnemonic; //Used to generate keys locally when transferring assets & opening/closing channels.
 		this.data = data; //Will resemble the signingData object in the app to manage channel signing data/state.
@@ -122,7 +119,6 @@ export default class ObdApi {
 	messageType: MessageType = new MessageType();
 	ws: WebSocket | any;
 	defaultUrl: string;
-	omniboltServer: string;
 	loginPhrase: string;
 	mnemonic: string;
 	data: ISaveData;
