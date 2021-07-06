@@ -17,7 +17,6 @@
       "dom"
     ],
     "moduleResolution": "node",
-    "noEmit": true,
     "declaration": true,
     "strict": true,
     "allowJs": true,
@@ -30,5 +29,8 @@
     "skipLibCheck": true
     //"noUnusedParameters": true
   },
+  "include": [
+    "src/**/*.ts"
+  ],
   "exclude": ["node_modules"]
 }
