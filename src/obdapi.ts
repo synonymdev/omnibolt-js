@@ -96,15 +96,15 @@ export default class ObdApi {
 		data = defaultDataShape,
 		saveData = (): any => null,
 		listeners = {},
-		selectedNetwork,
+		selectedNetwork = 'bitcoin',
 	}: {
-		url: string;
-		loginPhrase: string;
-		mnemonic: string;
-		data: ISaveData;
-		saveData: (data: ISaveData) => any;
-		listeners: IListeners | {};
-		selectedNetwork: TAvailableNetworks;
+		url?: string | undefined;
+		loginPhrase?: string;
+		mnemonic?: string;
+		data?: ISaveData;
+		saveData?: (data: ISaveData) => any;
+		listeners?: IListeners | {};
+		selectedNetwork?: TAvailableNetworks;
 	}) {
 		this.defaultUrl = url; //Omnibolt server to connect to.
 		this.loginPhrase = loginPhrase; //Mnemonic phrase used to login to the omnibolt server.
