@@ -1,4 +1,4 @@
-import { ECPairInterface } from "bitcoinjs-lib";
+import { ECPairInterface } from 'bitcoinjs-lib';
 export interface IConnect {
     recipient_node_peer_id: string;
     recipient_user_peer_id: string;
@@ -597,7 +597,7 @@ export interface ISigningDataContent {
 export interface ISigningData {
     [key: string]: ISigningDataContent;
 }
-export declare type TOmniboltCheckpoints = "onChannelOpenAttempt" | "channelAccept" | "onAcceptChannel" | "fundBitcoin" | "onFundBitcoin" | "onBitcoinFundingCreated" | "onAssetFundingCreated" | "sendSignedHex101035" | "onCommitmentTransactionCreated" | "commitmentTransactionAccepted" | "on110353" | "on110352" | "htlcFindPath" | "onHtlcFindPath" | "addHtlc" | "onAddHtlc" | "htlcSIgned" | "onHtlcSigned" | "forwardR" | "onForwardR" | "signR" | "onSignR" | "closeHtlc" | "onCloseHtlc" | "closeHtlcSigned" | "onCloseHtlcSigned" | "onChannelCloseAttempt" | "sendSignedHex100363";
+export declare type TOmniboltCheckpoints = 'onChannelOpenAttempt' | 'channelAccept' | 'onAcceptChannel' | 'fundBitcoin' | 'onFundBitcoin' | 'onBitcoinFundingCreated' | 'onAssetFundingCreated' | 'sendSignedHex101035' | 'onCommitmentTransactionCreated' | 'commitmentTransactionAccepted' | 'on110353' | 'on110352' | 'htlcFindPath' | 'onHtlcFindPath' | 'addHtlc' | 'onAddHtlc' | 'htlcSIgned' | 'onHtlcSigned' | 'forwardR' | 'onForwardR' | 'signR' | 'onSignR' | 'closeHtlc' | 'onCloseHtlc' | 'closeHtlcSigned' | 'onCloseHtlcSigned' | 'onChannelCloseAttempt' | 'sendSignedHex100363';
 export interface ICheckpoint {
     checkpoint: TOmniboltCheckpoints;
     data: any;
@@ -615,11 +615,11 @@ export interface ISaveData {
     signingData: ISigningData;
     checkpoints: ICheckpoints;
 }
-export declare type TAvailableNetworks = "bitcoin" | "bitcoinTestnet";
+export declare type TAvailableNetworks = 'bitcoin' | 'bitcoinTestnet';
 export interface IGetAddress {
     keyPair: ECPairInterface | undefined;
     network: INetwork | undefined;
-    type?: "bech32" | "segwit" | "legacy";
+    type?: 'bech32' | 'segwit' | 'legacy';
 }
 export interface INetwork {
     messagePrefix: string;
@@ -632,13 +632,6 @@ export interface INetwork {
     scriptHash: number;
     wif: number;
 }
-export declare const addressContent: {
-    index: number;
-    path: string;
-    address: string;
-    scriptHash: string;
-    publicKey: string;
-};
 export interface IChannelSigningData {
     fundingAddress: IAddressContent;
     addressIndex: IAddressContent;
@@ -652,7 +645,9 @@ export interface IChannelSigningData {
     kTbSignedHexCR110351: string;
     kTbSignedHexRR110351: string;
 }
-export declare const channelSigningData: IChannelSigningData;
+export declare type IListeners = {
+    [key in TOmniboltCheckpoints]?: IListenerParams<any, any>;
+};
 export interface IListenerParams<TStart, TSuccess> {
     start: (data: TStart) => any;
     success: (data: TSuccess) => any;

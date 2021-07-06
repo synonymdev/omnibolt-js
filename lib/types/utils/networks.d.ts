@@ -18,4 +18,3 @@ export declare type INetworks = {
     [key in EAvailableNetworks]: INetwork;
 };
 export declare const networks: INetworks;
-export declare const availableNetworks: () => EAvailableNetworks[];
