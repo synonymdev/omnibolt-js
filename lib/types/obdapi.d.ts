@@ -1,25 +1,26 @@
-import { MessageType, Message, P2PPeer, BtcFundingInfo, FundingBtcCreated, FundingBtcSigned, OmniFundingAssetInfo, OmniSendAssetInfo, OpenChannelInfo, AcceptChannelInfo, AssetFundingCreatedInfo, AssetFundingSignedInfo, SignedInfo100100, SignedInfo100101, SignedInfo100102, SignedInfo100103, SignedInfo100104, SignedInfo100105, SignedInfo100106, SignedInfo100110, SignedInfo100111, SignedInfo100112, SignedInfo100113, SignedInfo100114, SignedInfo100360, SignedInfo100361, SignedInfo100362, SignedInfo100363, SignedInfo100364, SignedInfo101035, SignedInfo101134, CommitmentTx, CommitmentTxSigned, InvoiceInfo, HTLCFindPathInfo, addHTLCInfo, HtlcSignedInfo, ForwardRInfo, SignRInfo, CloseHtlcTxInfo, CloseHtlcTxInfoSigned, IssueFixedAmountInfo, IssueManagedAmoutInfo, OmniSendGrant, OmniSendRevoke, CloseChannelSign, AtomicSwapAccepted, AtomicSwapRequest } from "./pojo";
-import { Result } from "./result";
-import { IAcceptChannel, IConnect, IGetMyChannels, ILogin, IFundingBitcoin, IBitcoinFundingCreated, ISendSignedHex100341, TOnBitcoinFundingCreated, TOnChannelOpenAttempt, IBitcoinFundingSigned, TOnAssetFundingCreated, IAssetFundingSigned, TSendSignedHex101035, TOnCommitmentTransactionCreated, ICommitmentTransactionAcceptedResponse, ISendSignedHex100361Response, TOnAcceptChannel, TOn110353, ICommitmentTransactionCreated, TOn110352, ISendSignedHex100364Response, ISendSignedHex100362Response, ISendSignedHex100363Response, IGetProperty, ICloseChannel, ISaveData, TAvailableNetworks, IData, IListenerParams, ISendSignedHex101035, TOmniboltCheckpoints, ISendSignedHex100363, ICommitmentTransactionAcceptedCheckpointData } from "./types";
+import { MessageType, Message, P2PPeer, BtcFundingInfo, FundingBtcCreated, FundingBtcSigned, OmniFundingAssetInfo, OmniSendAssetInfo, OpenChannelInfo, AcceptChannelInfo, AssetFundingCreatedInfo, AssetFundingSignedInfo, SignedInfo100100, SignedInfo100101, SignedInfo100102, SignedInfo100103, SignedInfo100104, SignedInfo100105, SignedInfo100106, SignedInfo100110, SignedInfo100111, SignedInfo100112, SignedInfo100113, SignedInfo100114, SignedInfo100360, SignedInfo100361, SignedInfo100362, SignedInfo100363, SignedInfo100364, SignedInfo101035, SignedInfo101134, CommitmentTx, CommitmentTxSigned, InvoiceInfo, HTLCFindPathInfo, addHTLCInfo, HtlcSignedInfo, ForwardRInfo, SignRInfo, CloseHtlcTxInfo, CloseHtlcTxInfoSigned, IssueFixedAmountInfo, IssueManagedAmoutInfo, OmniSendGrant, OmniSendRevoke, CloseChannelSign, AtomicSwapAccepted, AtomicSwapRequest } from './pojo';
+import { Result } from './result';
+import { IAcceptChannel, IConnect, IGetMyChannels, ILogin, IFundingBitcoin, IBitcoinFundingCreated, ISendSignedHex100341, TOnBitcoinFundingCreated, TOnChannelOpenAttempt, IBitcoinFundingSigned, TOnAssetFundingCreated, IAssetFundingSigned, TSendSignedHex101035, TOnCommitmentTransactionCreated, ICommitmentTransactionAcceptedResponse, ISendSignedHex100361Response, TOnAcceptChannel, TOn110353, ICommitmentTransactionCreated, TOn110352, ISendSignedHex100364Response, ISendSignedHex100362Response, ISendSignedHex100363Response, IGetProperty, ICloseChannel, ISaveData, TAvailableNetworks, ISendSignedHex101035, TOmniboltCheckpoints, ISendSignedHex100363, ICommitmentTransactionAcceptedCheckpointData, IListeners } from './types';
 export default class ObdApi {
-    constructor({ url }?: {
+    constructor({ url, loginPhrase, mnemonic, data, saveData, listeners, selectedNetwork, }: {
         url?: string | undefined;
+        loginPhrase?: string;
+        mnemonic?: string;
+        data?: ISaveData;
+        saveData?: (data: ISaveData) => any;
+        listeners?: IListeners | {};
+        selectedNetwork?: TAvailableNetworks;
     });
     isConnectedToOBD: boolean;
     isLoggedIn: boolean;
     messageType: MessageType;
     ws: WebSocket | any;
     defaultUrl: string;
-    omniboltServer: string;
     loginPhrase: string;
     mnemonic: string;
-    data: IData;
-    saveData: (data: IData) => any;
-    updateCheckpoint: Function;
-    refreshChannel: Function;
-    listeners: {
-        [key: string]: IListenerParams<any, any>;
-    } | undefined;
+    data: ISaveData;
+    saveData: (data: ISaveData) => any;
+    listeners: IListeners | {};
     selectedNetwork: TAvailableNetworks;
     globalCallback: Function | undefined;
     callbackMap: Map<number, Function>;
@@ -32,15 +33,13 @@ export default class ObdApi {
         nodePeerId: string;
         userPeerId: string;
     };
-    connect({ url, data, saveData, loginPhrase, mnemonic, listeners, selectedNetwork, onOpen, onMessage, onChannelCloseAttempt, onChannelClose, onError, onClose, onAddHTLC, onForwardR, onSignR, onCloseHTLC }: {
+    connect({ url, data, saveData, loginPhrase, mnemonic, listeners, selectedNetwork, onOpen, onMessage, onChannelCloseAttempt, onChannelClose, onError, onClose, onAddHTLC, onForwardR, onSignR, onCloseHTLC, }: {
         url: string | undefined;
-        data: IData | undefined;
+        data: ISaveData | undefined;
         saveData: (data: ISaveData) => void;
         loginPhrase: string;
         mnemonic: string;
-        listeners: {
-            [key: string]: IListenerParams<any, any>;
-        } | undefined;
+        listeners: IListeners | undefined;
         selectedNetwork: TAvailableNetworks;
         onOpen: (data: any) => any;
         onMessage: (data: any) => any;
@@ -89,10 +88,10 @@ export default class ObdApi {
     onAcceptChannel(data: TOnAcceptChannel): Promise<void>;
     onBitcoinFundingCreated(data: TOnBitcoinFundingCreated): Promise<Result<IBitcoinFundingSigned>>;
     onAssetFundingCreated(data: TOnAssetFundingCreated): Promise<Result<ISendSignedHex101035>>;
-    onCommitmentTransactionCreated(data: TOnCommitmentTransactionCreated): Promise<Result<any>>;
-    handleCommitmentTransactionAccepted({ info, userID, nodeID }: ICommitmentTransactionAcceptedCheckpointData): Promise<Result<ISendSignedHex100361Response>>;
+    onCommitmentTransactionCreated(data: TOnCommitmentTransactionCreated): Promise<Result<ISendSignedHex100361Response>>;
+    handleCommitmentTransactionAccepted({ info, userID, nodeID, }: ICommitmentTransactionAcceptedCheckpointData): Promise<Result<ISendSignedHex100361Response>>;
     on110352(data: TOn110352): Promise<Result<ISendSignedHex100363Response>>;
-    handleSendSignedHex100363({ data, privkey, channelId, nodeID, userID }: ISendSignedHex100363): Promise<Result<ISendSignedHex100363Response>>;
+    handleSendSignedHex100363({ data, privkey, channelId, nodeID, userID, }: ISendSignedHex100363): Promise<Result<ISendSignedHex100363Response>>;
     on110353(data: TOn110353): Promise<Result<ISendSignedHex100364Response>>;
     checkChannelAddessExist(recipient_node_peer_id: string, recipient_user_peer_id: string, info: AcceptChannelInfo): Promise<Result<any>>;
     onCheckChannelAddessExist(jsonData: any): void;
@@ -101,7 +100,7 @@ export default class ObdApi {
     sendSignedHex101134(info: SignedInfo101134): Promise<Result<any>>;
     assetFundingSigned(recipient_node_peer_id: string, recipient_user_peer_id: string, info: AssetFundingSignedInfo): Promise<Result<IAssetFundingSigned>>;
     onAssetFundingSigned(jsonData: any): void;
-    sendSignedHex101035({ data, channelId, recipient_node_peer_id, recipient_user_peer_id }: {
+    sendSignedHex101035({ data, channelId, recipient_node_peer_id, recipient_user_peer_id, }: {
         data: IAssetFundingSigned;
         channelId: string;
         recipient_node_peer_id: string;
@@ -202,15 +201,15 @@ export default class ObdApi {
     onCloseChannelSigned(jsonData: any): void;
     atomicSwap(recipient_node_peer_id: string, recipient_user_peer_id: string, info: AtomicSwapRequest): Promise<Result<any>>;
     atomicSwapAccepted(recipient_node_peer_id: string, recipient_user_peer_id: string, info: AtomicSwapAccepted): Promise<Result<any>>;
-    sendOmniAsset: ({ channelId, amount, recipient_node_peer_id, recipient_user_peer_id }: {
+    sendOmniAsset: ({ channelId, amount, recipient_node_peer_id, recipient_user_peer_id, }: {
         channelId: string;
         amount: number;
         recipient_node_peer_id: string;
         recipient_user_peer_id: string;
     }) => Promise<Result<any>>;
     isNotString(str: String): boolean;
-    listener(key: string, method: "start" | "failure" | "success", data?: any): Result<any>;
-    updateOmniboltCheckpoint({ channelId, checkpoint, data }: {
+    listener(id: string, method: 'start' | 'failure' | 'success', data?: any): Result<any>;
+    updateOmniboltCheckpoint({ channelId, checkpoint, data, }: {
         channelId: string;
         checkpoint: TOmniboltCheckpoints;
         data: any;

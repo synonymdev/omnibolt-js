@@ -732,7 +732,7 @@ export interface IChannelSigningData {
 }
 
 export type IListeners = {
-	[key in TOmniboltCheckpoints]: IListenerParams<any, any>;
+	[key in TOmniboltCheckpoints]?: IListenerParams<any, any>;
 };
 
 export interface IListenerParams<TStart, TSuccess> {

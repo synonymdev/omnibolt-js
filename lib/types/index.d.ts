@@ -1,2 +1,2 @@
-import ObdApi from "./obdapi";
+import ObdApi from './obdapi';
 export { ObdApi };
