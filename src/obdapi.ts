@@ -221,10 +221,11 @@ export default class ObdApi {
 
 			this.ws.onopen = (): void => {
 				// connection opened
-				if (this.onMessage) this.onMessage(`Connected to ${url}`);
+				const msg = `Connected to ${this.defaultUrl}`;
+				if (this.onMessage) this.onMessage(msg);
 				this.isConnectedToOBD = true;
 				this.resumeFromCheckpoints().then();
-				this.onOpen(`Connected to ${this.defaultUrl}`);
+				this.onOpen(msg);
 			};
 
 			this.ws.onmessage = (e): void => {
