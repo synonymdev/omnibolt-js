@@ -2,7 +2,7 @@ import { MessageType, Message, P2PPeer, BtcFundingInfo, FundingBtcCreated, Fundi
 import { Result } from './result';
 import { IAcceptChannel, IConnect, IGetMyChannels, ILogin, IFundingBitcoin, IBitcoinFundingCreated, ISendSignedHex100341, TOnBitcoinFundingCreated, TOnChannelOpenAttempt, IBitcoinFundingSigned, TOnAssetFundingCreated, IAssetFundingSigned, TSendSignedHex101035, TOnCommitmentTransactionCreated, ICommitmentTransactionAcceptedResponse, ISendSignedHex100361Response, TOnAcceptChannel, TOn110353, ICommitmentTransactionCreated, TOn110352, ISendSignedHex100364Response, ISendSignedHex100362Response, ISendSignedHex100363Response, IGetProperty, ICloseChannel, ISaveData, TAvailableNetworks, ISendSignedHex101035, TOmniboltCheckpoints, ISendSignedHex100363, ICommitmentTransactionAcceptedCheckpointData, IListeners } from './types';
 export default class ObdApi {
-    constructor({ url, loginPhrase, mnemonic, data, saveData, listeners, selectedNetwork, }: {
+    constructor({ url, loginPhrase, mnemonic, data, saveData, listeners, selectedNetwork, onOpen, onClose, onError, }: {
         url?: string | undefined;
         loginPhrase?: string;
         mnemonic?: string;
@@ -10,6 +10,9 @@ export default class ObdApi {
         saveData?: (data: ISaveData) => any;
         listeners?: IListeners | {};
         selectedNetwork?: TAvailableNetworks;
+        onOpen?: (data: string) => any;
+        onError?: (data: any) => any;
+        onClose?: (code: number, reason: string) => any;
     });
     isConnectedToOBD: boolean;
     isLoggedIn: boolean;
@@ -24,7 +27,9 @@ export default class ObdApi {
     selectedNetwork: TAvailableNetworks;
     globalCallback: Function | undefined;
     callbackMap: Map<number, Function>;
-    onOpen: ((data: any) => any) | undefined;
+    onOpen: (data: string) => any;
+    onError: (data: any) => any;
+    onClose: (code: number, reason: string) => any;
     onMessage: Function | undefined;
     onChannelCloseAttempt: ((data: any) => any) | undefined;
     onChannelClose: Function | undefined;
@@ -33,7 +38,7 @@ export default class ObdApi {
         nodePeerId: string;
         userPeerId: string;
     };
-    connect({ url, data, saveData, loginPhrase, mnemonic, listeners, selectedNetwork, onOpen, onMessage, onChannelCloseAttempt, onChannelClose, onError, onClose, onAddHTLC, onForwardR, onSignR, onCloseHTLC, }: {
+    connect({ url, data, saveData, loginPhrase, mnemonic, listeners, selectedNetwork, onMessage, onChannelCloseAttempt, onChannelClose, onOpen, onError, onClose, onAddHTLC, onForwardR, onSignR, onCloseHTLC, }: {
         url: string | undefined;
         data: ISaveData | undefined;
         saveData: (data: ISaveData) => void;
@@ -41,11 +46,11 @@ export default class ObdApi {
         mnemonic: string;
         listeners: IListeners | undefined;
         selectedNetwork: TAvailableNetworks;
-        onOpen: (data: any) => any;
         onMessage: (data: any) => any;
         onChannelCloseAttempt: (data: any) => any;
         onAcceptChannel?: (data: TOnAcceptChannel) => any;
         onChannelClose: (data: any) => any;
+        onOpen: (data: string) => any;
         onError: (e: string | object) => any;
         onClose: (code: number, reason: string) => any;
         onAddHTLC: (data: any) => any;

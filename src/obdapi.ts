@@ -86,17 +86,20 @@ import {
 import { getNextOmniboltAddress, getPrivateKey, signP2SH } from './utils';
 import { channelSigningData, defaultDataShape } from './shapes';
 
-const DEFAULT_URL = '62.234.216.108:60020';
+const DEFAULT_URL = '62.234.216.108:60020/wstest';
 
 export default class ObdApi {
 	constructor({
-		url = DEFAULT_URL,
-		loginPhrase = '',
-		mnemonic = '',
-		data = defaultDataShape,
-		saveData = (): any => null,
+		url = DEFAULT_URL, //Omnibolt server to connect to.
+		loginPhrase = '', //Mnemonic phrase used to login to the omnibolt server.
+		mnemonic = '', //Used to generate keys locally when transferring assets & opening/closing channels.
+		data = defaultDataShape, //Will resemble the signingData object in the app to manage channel signing data/state.
+		saveData = (): any => null, //Used to update/save the data object.
 		listeners = {},
 		selectedNetwork = 'bitcoin',
+		onOpen = (): any => null,
+		onClose = (): any => null,
+		onError = (): any => null,
 	}: {
 		url?: string | undefined;
 		loginPhrase?: string;
@@ -105,14 +108,20 @@ export default class ObdApi {
 		saveData?: (data: ISaveData) => any;
 		listeners?: IListeners | {};
 		selectedNetwork?: TAvailableNetworks;
+		onOpen?: (data: string) => any;
+		onError?: (data: any) => any;
+		onClose?: (code: number, reason: string) => any;
 	}) {
-		this.defaultUrl = url; //Omnibolt server to connect to.
-		this.loginPhrase = loginPhrase; //Mnemonic phrase used to login to the omnibolt server.
-		this.mnemonic = mnemonic; //Used to generate keys locally when transferring assets & opening/closing channels.
-		this.data = data; //Will resemble the signingData object in the app to manage channel signing data/state.
-		this.saveData = saveData; //Used to update/save the data object.
+		this.defaultUrl = url;
+		this.loginPhrase = loginPhrase;
+		this.mnemonic = mnemonic;
+		this.data = data;
+		this.saveData = saveData;
 		this.listeners = listeners;
 		this.selectedNetwork = selectedNetwork;
+		this.onOpen = onOpen;
+		this.onClose = onClose;
+		this.onError = onError;
 	}
 	isConnectedToOBD: boolean = false;
 	isLoggedIn: boolean = false;
@@ -127,7 +136,9 @@ export default class ObdApi {
 	selectedNetwork: TAvailableNetworks;
 	globalCallback: Function | undefined;
 	callbackMap: Map<number, Function> = new Map<number, Function>();
-	onOpen: ((data: any) => any) | undefined;
+	onOpen: (data: string) => any;
+	onError: (data: any) => any;
+	onClose: (code: number, reason: string) => any;
 	onMessage: Function | undefined;
 	onChannelCloseAttempt: ((data: any) => any) | undefined;
 	onChannelClose: Function | undefined;
@@ -145,10 +156,10 @@ export default class ObdApi {
 		mnemonic,
 		listeners,
 		selectedNetwork,
-		onOpen,
 		onMessage,
 		onChannelCloseAttempt,
 		onChannelClose,
+		onOpen,
 		onError,
 		onClose,
 		onAddHTLC,
@@ -163,11 +174,11 @@ export default class ObdApi {
 		mnemonic: string;
 		listeners: IListeners | undefined;
 		selectedNetwork: TAvailableNetworks;
-		onOpen: (data: any) => any;
 		onMessage: (data: any) => any;
 		onChannelCloseAttempt: (data: any) => any;
 		onAcceptChannel?: (data: TOnAcceptChannel) => any;
 		onChannelClose: (data: any) => any;
+		onOpen: (data: string) => any;
 		onError: (e: string | object) => any;
 		onClose: (code: number, reason: string) => any;
 		onAddHTLC: (data: any) => any;
@@ -187,33 +198,34 @@ export default class ObdApi {
 			} else {
 				this.defaultUrl = url;
 			}
-			this.ws = new WebSocket(`ws://${this.defaultUrl}/wstest`);
-			if (data === undefined) {
-				this.data = defaultDataShape;
-			} else {
-				this.data = data;
-			}
-			if (saveData !== undefined) this.saveData = saveData;
-			if (loginPhrase !== undefined) this.loginPhrase = loginPhrase;
-			if (mnemonic !== undefined) this.mnemonic = mnemonic;
-			if (listeners !== undefined) this.listeners = listeners;
-			if (selectedNetwork !== undefined) this.selectedNetwork = selectedNetwork;
-			if (onMessage !== undefined) this.onMessage = onMessage;
-			if (onOpen !== undefined) this.onOpen = onOpen;
-			if (onChannelCloseAttempt !== undefined)
+			this.ws = new WebSocket(`ws://${this.defaultUrl}`);
+
+			this.data = data ? data : defaultDataShape;
+
+			if (saveData) this.saveData = saveData;
+			if (loginPhrase) this.loginPhrase = loginPhrase;
+			if (mnemonic) this.mnemonic = mnemonic;
+			if (listeners) this.listeners = listeners;
+			if (selectedNetwork) this.selectedNetwork = selectedNetwork;
+			if (onMessage) this.onMessage = onMessage;
+			if (onOpen) this.onOpen = onOpen;
+			if (onError) this.onError = onError;
+			if (onClose) this.onClose = onClose;
+			if (onChannelCloseAttempt)
 				this.onChannelCloseAttempt = onChannelCloseAttempt;
-			if (onChannelClose !== undefined) this.onChannelClose = onChannelClose;
-			if (onAddHTLC !== undefined) this.onAddHTLC = onAddHTLC;
-			if (onForwardR !== undefined) this.onForwardR = onForwardR;
-			if (onSignR !== undefined) this.onSignR = onSignR;
-			if (onCloseHTLC !== undefined) this.onCloseHTLC = onCloseHTLC;
+			if (onChannelClose) this.onChannelClose = onChannelClose;
+			if (onAddHTLC) this.onAddHTLC = onAddHTLC;
+			if (onForwardR) this.onForwardR = onForwardR;
+			if (onSignR) this.onSignR = onSignR;
+			if (onCloseHTLC) this.onCloseHTLC = onCloseHTLC;
 
 			this.ws.onopen = (): void => {
 				// connection opened
-				if (this.onMessage) this.onMessage(`Connected to ${url}`);
+				const msg = `Connected to ${this.defaultUrl}`;
+				if (this.onMessage) this.onMessage(msg);
 				this.isConnectedToOBD = true;
 				this.resumeFromCheckpoints().then();
-				onOpen(url);
+				this.onOpen(msg);
 			};
 
 			this.ws.onmessage = (e): void => {
@@ -315,7 +327,7 @@ export default class ObdApi {
 				// an error occurred
 				console.log(e);
 				this.disconnect();
-				onError(e.message);
+				this.onError(e.message);
 				resolve(err(e.message));
 			};
 
@@ -323,7 +335,7 @@ export default class ObdApi {
 				// connection closed
 				console.log('Closing Up!');
 				this.disconnect();
-				onClose(e.code, e.reason);
+				this.onClose(e.code, e.reason);
 			};
 		});
 	}
