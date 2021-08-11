@@ -100,8 +100,10 @@ export default class ObdApi {
 		onOpen = (): any => null,
 		onClose = (): any => null,
 		onError = (): any => null,
+		websocket,
+		verbose = false,
 	}: {
-		url?: string | undefined;
+		url?: string;
 		loginPhrase?: string;
 		mnemonic?: string;
 		data?: ISaveData;
@@ -111,7 +113,9 @@ export default class ObdApi {
 		onOpen?: (data: string) => any;
 		onError?: (data: any) => any;
 		onClose?: (code: number, reason: string) => any;
-	}) {
+		websocket?: WebSocket;
+		verbose?: boolean;
+	} = {}) {
 		this.defaultUrl = url;
 		this.loginPhrase = loginPhrase;
 		this.mnemonic = mnemonic;
@@ -122,10 +126,13 @@ export default class ObdApi {
 		this.onOpen = onOpen;
 		this.onClose = onClose;
 		this.onError = onError;
+		this.websocket = websocket ?? WebSocket;
+		this.verbose = verbose;
 	}
 	isConnectedToOBD: boolean = false;
 	isLoggedIn: boolean = false;
 	messageType: MessageType = new MessageType();
+	websocket: WebSocket | any;
 	ws: WebSocket | any;
 	defaultUrl: string;
 	loginPhrase: string;
@@ -147,6 +154,7 @@ export default class ObdApi {
 		nodePeerId: '',
 		userPeerId: '',
 	};
+	verbose: boolean = false;
 
 	connect({
 		url,
@@ -198,9 +206,9 @@ export default class ObdApi {
 			} else {
 				this.defaultUrl = url;
 			}
-			this.ws = new WebSocket(`ws://${this.defaultUrl}`);
+			this.ws = new this.websocket(`ws://${this.defaultUrl}`);
 
-			this.data = data ? data : defaultDataShape;
+			this.data = data ?? defaultDataShape;
 
 			if (saveData) this.saveData = saveData;
 			if (loginPhrase) this.loginPhrase = loginPhrase;
@@ -347,7 +355,7 @@ export default class ObdApi {
 	 */
 	registerEvent(msgType: number, callback: Function): void {
 		if (callback == null) {
-			console.info('callback function is null');
+			this.logMsg('callback function is null');
 			return;
 		}
 		if (msgType == null) {
@@ -363,7 +371,7 @@ export default class ObdApi {
 	 */
 	removeEvent(msgType: number): void {
 		this.callbackMap.delete(msgType);
-		//console.info("----------> removeEvent");
+		this.logMsg('----------> removeEvent');
 	}
 
 	/**
@@ -383,8 +391,8 @@ export default class ObdApi {
 			return;
 		}
 
-		//console.info(new Date(), "------send json msg------");
-		//console.info(msg);
+		this.logMsg(new Date(), '------send json msg------');
+		this.logMsg(msg);
 
 		if (callback !== null) {
 			this.callbackMap[type] = callback;
@@ -401,7 +409,7 @@ export default class ObdApi {
 	 */
 	connectToServer(url: string, callback: Function, globalCallback: Function) {
 		if (this.isConnectedToOBD) {
-			console.info('already connected');
+			this.logMsg('already connected');
 			if (callback) callback('already connected');
 			return;
 		}
@@ -412,9 +420,9 @@ export default class ObdApi {
 			this.defaultUrl = url;
 		}
 
-		console.info('connect to ' + this.defaultUrl);
+		this.logMsg('connect to ' + this.defaultUrl);
 		try {
-			this.ws = new WebSocket(this.defaultUrl);
+			this.ws = new this.websocket(`ws://${this.defaultUrl}`);
 			this.ws.onopen = (e): void => {
 				console.info(e);
 
@@ -426,23 +434,23 @@ export default class ObdApi {
 			};
 			this.ws.onmessage = (e): void => {
 				let jsonData = JSON.parse(e.data);
-				console.info(jsonData);
+				this.logMsg(jsonData);
 				this.getDataFromServer(jsonData);
 			};
 
 			this.ws.onclose = (e): Result<string> => {
-				console.info('ws close', e);
+				this.logMsg('ws close', e);
 				this.isConnectedToOBD = false;
 				this.isLoggedIn = false;
 				return err('ws close');
 			};
 
 			this.ws.onerror = (e): Result<string> => {
-				console.info('ws error', e);
+				this.logMsg('ws error', e);
 				return err('ws error');
 			};
 		} catch (e) {
-			console.info(e);
+			this.logMsg(e);
 			return err(e);
 		}
 	}
@@ -461,11 +469,11 @@ export default class ObdApi {
 			return err('please login');
 		}
 
-		console.info(
+		this.logMsg(
 			new Date(),
 			'----------------------------send msg------------------------------',
 		);
-		console.info(msg);
+		this.logMsg(msg);
 		if (callback !== null) {
 			this.callbackMap[msg.type] = callback;
 		}
@@ -473,7 +481,7 @@ export default class ObdApi {
 	}
 
 	getDataFromServer(jsonData: any): any {
-		console.info(jsonData);
+		this.logMsg(jsonData);
 
 		if (this.globalCallback) this.globalCallback(jsonData);
 
@@ -633,7 +641,11 @@ export default class ObdApi {
 			return err('You are already logged in!');
 		}
 
-		if (this.isNotString(mnemonic)) {
+		if (!mnemonic || this.isNotString(mnemonic)) {
+			mnemonic = this.mnemonic ?? '';
+		}
+
+		if (!mnemonic) {
 			return err('empty mnemonic');
 		}
 
@@ -3616,7 +3628,7 @@ export default class ObdApi {
 			let cr = e.counterparty_raw_data;
 			let inputs = cr.inputs;
 
-			console.info('START = ' + new Date().getTime());
+			this.logMsg('START = ' + new Date().getTime());
 			const fundingData = signingData.fundingAddress;
 			const fundingPrivKey = await getPrivateKey({
 				addressData: fundingData,
@@ -3627,7 +3639,7 @@ export default class ObdApi {
 				return err(fundingPrivKey.error.message);
 			}
 			let privkey = fundingPrivKey.value;
-			console.info('END READ DB = ' + new Date().getTime());
+			this.logMsg('END READ DB = ' + new Date().getTime());
 
 			let cr_hex = await signP2SH({
 				is_first_sign: true,
@@ -3639,7 +3651,7 @@ export default class ObdApi {
 				selectedNetwork,
 			});
 
-			console.info('END SIGN = ' + new Date().getTime());
+			this.logMsg('END SIGN = ' + new Date().getTime());
 
 			// NO.2 rsmc_raw_data
 			let rr = e.rsmc_raw_data;
@@ -3762,7 +3774,7 @@ export default class ObdApi {
 	}
 
 	async resumeFromCheckpoints(): Promise<void> {
-		const checkpoints = this.data.checkpoints;
+		const checkpoints = this.data.checkpoints ?? {};
 		await Promise.all(
 			Object.keys(checkpoints).map((channelId): void => {
 				const id = checkpoints[channelId].checkpoint;
@@ -3815,4 +3827,8 @@ export default class ObdApi {
 			}),
 		);
 	}
+
+	logMsg = (p1: any = '', p2 = ''): void => {
+		if (this.verbose) console.info(p1, p2);
+	};
 }

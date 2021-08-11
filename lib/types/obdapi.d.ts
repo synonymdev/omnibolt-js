@@ -2,8 +2,8 @@ import { MessageType, Message, P2PPeer, BtcFundingInfo, FundingBtcCreated, Fundi
 import { Result } from './result';
 import { IAcceptChannel, IConnect, IGetMyChannels, ILogin, IFundingBitcoin, IBitcoinFundingCreated, ISendSignedHex100341, TOnBitcoinFundingCreated, TOnChannelOpenAttempt, IBitcoinFundingSigned, TOnAssetFundingCreated, IAssetFundingSigned, TSendSignedHex101035, TOnCommitmentTransactionCreated, ICommitmentTransactionAcceptedResponse, ISendSignedHex100361Response, TOnAcceptChannel, TOn110353, ICommitmentTransactionCreated, TOn110352, ISendSignedHex100364Response, ISendSignedHex100362Response, ISendSignedHex100363Response, IGetProperty, ICloseChannel, ISaveData, TAvailableNetworks, ISendSignedHex101035, TOmniboltCheckpoints, ISendSignedHex100363, ICommitmentTransactionAcceptedCheckpointData, IListeners } from './types';
 export default class ObdApi {
-    constructor({ url, loginPhrase, mnemonic, data, saveData, listeners, selectedNetwork, onOpen, onClose, onError, }: {
-        url?: string | undefined;
+    constructor({ url, loginPhrase, mnemonic, data, saveData, listeners, selectedNetwork, onOpen, onClose, onError, websocket, verbose, }?: {
+        url?: string;
         loginPhrase?: string;
         mnemonic?: string;
         data?: ISaveData;
@@ -13,10 +13,13 @@ export default class ObdApi {
         onOpen?: (data: string) => any;
         onError?: (data: any) => any;
         onClose?: (code: number, reason: string) => any;
+        websocket?: WebSocket;
+        verbose?: boolean;
     });
     isConnectedToOBD: boolean;
     isLoggedIn: boolean;
     messageType: MessageType;
+    websocket: WebSocket | any;
     ws: WebSocket | any;
     defaultUrl: string;
     loginPhrase: string;
@@ -38,6 +41,7 @@ export default class ObdApi {
         nodePeerId: string;
         userPeerId: string;
     };
+    verbose: boolean;
     connect({ url, data, saveData, loginPhrase, mnemonic, listeners, selectedNetwork, onMessage, onChannelCloseAttempt, onChannelClose, onOpen, onError, onClose, onAddHTLC, onForwardR, onSignR, onCloseHTLC, }: {
         url: string | undefined;
         data: ISaveData | undefined;
@@ -223,4 +227,5 @@ export default class ObdApi {
         channelId: string;
     }): void;
     resumeFromCheckpoints(): Promise<void>;
+    logMsg: (p1?: any, p2?: string) => void;
 }
