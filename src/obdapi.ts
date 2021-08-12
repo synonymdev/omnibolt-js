@@ -149,7 +149,10 @@ export default class ObdApi {
 	onMessage: Function | undefined;
 	onChannelCloseAttempt: ((data: any) => any) | undefined;
 	onChannelClose: Function | undefined;
-	loginData = {
+	loginData: ILogin = {
+		chainNodeType: '',
+		htlcFeeRate: 0.0001,
+		htlcMaxFee: 0.01,
 		nodeAddress: '',
 		nodePeerId: '',
 		userPeerId: '',
@@ -652,7 +655,14 @@ export default class ObdApi {
 		let msg = new Message();
 		msg.type = this.messageType.MsgType_UserLogin_2001;
 		msg.data['mnemonic'] = mnemonic;
-		return new Promise(async (resolve) => this.sendData(msg, resolve));
+		return new Promise(async (resolve) => {
+			const loginResponse = await this.sendData(msg, resolve);
+			if (loginResponse && loginResponse.isOk()) {
+				this.loginData = loginResponse.value;
+				return ok(loginResponse.value);
+			}
+			return err(loginResponse?.error?.message);
+		});
 	}
 
 	userPeerId: string = '';
@@ -3061,13 +3071,20 @@ export default class ObdApi {
 	 * @param propertyId string
 	 */
 	async getProperty(propertyId: string): Promise<Result<IGetProperty>> {
-		if (this.isNotString(propertyId)) {
-			return err('empty propertyId');
+		try {
+			if (!propertyId) {
+				return err('empty propertyId');
+			}
+			if (this.isNotString(propertyId)) {
+				propertyId.toString();
+			}
+			let msg = new Message();
+			msg.type = this.messageType.MsgType_Core_Omni_GetProperty_2119;
+			msg.data['propertyId'] = propertyId;
+			return new Promise(async (resolve) => this.sendData(msg, resolve));
+		} catch (e) {
+			return err(e);
 		}
-		let msg = new Message();
-		msg.type = this.messageType.MsgType_Core_Omni_GetProperty_2119;
-		msg.data['propertyId'] = propertyId;
-		return new Promise(async (resolve) => this.sendData(msg, resolve));
 	}
 
 	onGetProperty(jsonData: any) {}
@@ -3705,11 +3722,8 @@ export default class ObdApi {
 		}
 	};
 
-	isNotString(str: String): boolean {
-		if (str == null) {
-			return true;
-		}
-		return str.trim().length == 0;
+	isNotString(str): boolean {
+		return !str || typeof str !== 'string';
 	}
 
 	listener(
@@ -3831,4 +3845,8 @@ export default class ObdApi {
 	logMsg = (p1: any = '', p2 = ''): void => {
 		if (this.verbose) console.info(p1, p2);
 	};
+
+	getInfo(): ILogin {
+		return this.loginData;
+	}
 }
