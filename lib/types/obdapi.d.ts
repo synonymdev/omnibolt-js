@@ -36,11 +36,7 @@ export default class ObdApi {
     onMessage: Function | undefined;
     onChannelCloseAttempt: ((data: any) => any) | undefined;
     onChannelClose: Function | undefined;
-    loginData: {
-        nodeAddress: string;
-        nodePeerId: string;
-        userPeerId: string;
-    };
+    loginData: ILogin;
     verbose: boolean;
     connect({ url, data, saveData, loginPhrase, mnemonic, listeners, selectedNetwork, onMessage, onChannelCloseAttempt, onChannelClose, onOpen, onError, onClose, onAddHTLC, onForwardR, onSignR, onCloseHTLC, }: {
         url: string | undefined;
@@ -216,7 +212,7 @@ export default class ObdApi {
         recipient_node_peer_id: string;
         recipient_user_peer_id: string;
     }) => Promise<Result<any>>;
-    isNotString(str: String): boolean;
+    isNotString(str: any): boolean;
     listener(id: string, method: 'start' | 'failure' | 'success', data?: any): Result<any>;
     updateOmniboltCheckpoint({ channelId, checkpoint, data, }: {
         channelId: string;
@@ -228,4 +224,5 @@ export default class ObdApi {
     }): void;
     resumeFromCheckpoints(): Promise<void>;
     logMsg: (p1?: any, p2?: string) => void;
+    getInfo(): ILogin;
 }
