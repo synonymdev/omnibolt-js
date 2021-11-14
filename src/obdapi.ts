@@ -82,8 +82,14 @@ import {
 	ISendSignedHex100363,
 	ICommitmentTransactionAcceptedCheckpointData,
 	IListeners,
+	IAddressContent,
 } from './types';
-import { getNextOmniboltAddress, getPrivateKey, signP2SH } from './utils';
+import {
+	generateFundingAddress,
+	getNextOmniboltAddress,
+	getPrivateKey,
+	signP2SH,
+} from './utils';
 import { channelSigningData, defaultDataShape } from './shapes';
 
 const DEFAULT_URL = '62.234.216.108:60020/wstest';
@@ -936,6 +942,36 @@ export default class ObdApi {
 	onGetAddressInfo(jsonData: any): void {}
 
 	/**
+	 * This method returns the funding address used to fund the creation of channels and assets for the provided index.
+	 * @param {number} index
+	 */
+	async getFundingAddress({
+		index = 0,
+	}: {
+		index?: number;
+	}): Promise<Result<IAddressContent>> {
+		let fundingAddress: IAddressContent;
+		if (this.data?.fundingAddresses && index in this.data.fundingAddresses) {
+			fundingAddress = this.data['fundingAddresses'][index];
+		} else {
+			const fundingAddressRes = await generateFundingAddress({
+				index,
+				selectedNetwork: this.selectedNetwork,
+				mnemonic: this.mnemonic,
+			});
+			if (fundingAddressRes.isErr()) {
+				return err(fundingAddressRes.error.message);
+			}
+			fundingAddress = fundingAddressRes.value;
+
+			this.data['fundingAddresses'][`${index}`] = fundingAddress;
+			this.saveData(this.data);
+			return ok(fundingAddress);
+		}
+		return ok(fundingAddress);
+	}
+
+	/**
 	 * MsgType_SendChannelOpen_32
 	 * @param recipient_node_peer_id string
 	 * @param recipient_user_peer_id string
@@ -1013,6 +1049,10 @@ export default class ObdApi {
 		return new Promise(async (resolve) => this.sendData(msg, resolve));
 	}
 
+	/**
+	 * Listening 110032
+	 * @param {TOnChannelOpenAttempt} data
+	 */
 	async onChannelOpenAttempt(data: TOnChannelOpenAttempt): Promise<any> {
 		const listenerId = 'onChannelOpenAttempt';
 		try {
@@ -1029,14 +1069,14 @@ export default class ObdApi {
 				data,
 			});
 
-			const channelAddress = this.data.nextAddressIndex;
-			const funding_pubkey = channelAddress.publicKey;
+			const fundingAddress = this.data.nextAddressIndex;
+			const funding_pubkey = fundingAddress.publicKey;
 
 			const info = {
 				temporary_channel_id,
 				funding_pubkey,
 				approval: true,
-				fundee_address_index: channelAddress.index,
+				fundee_address_index: fundingAddress.index,
 			};
 
 			const response = await this.acceptChannel(
@@ -1061,8 +1101,8 @@ export default class ObdApi {
 			this.data.signingData[temporary_channel_id] = channelSigningData;
 			this.data.signingData[temporary_channel_id] = {
 				...this.data.signingData[temporary_channel_id],
-				fundingAddress: channelAddress,
-				addressIndex: channelAddress,
+				fundingAddress: fundingAddress,
+				addressIndex: fundingAddress,
 			};
 			this.clearOmniboltCheckpoint({
 				channelId: temporary_channel_id,
@@ -1075,6 +1115,11 @@ export default class ObdApi {
 		}
 	}
 
+	/**
+	 * Listening 110033
+	 * @param {TOnAcceptChannel} data
+	 * @return Promise<void>
+	 */
 	async onAcceptChannel(data: TOnAcceptChannel): Promise<void> {
 		await this.listener('onAcceptChannel', 'start', data);
 		this.updateOmniboltCheckpoint({
@@ -1098,7 +1143,7 @@ export default class ObdApi {
 			});
 			const tempChannelId = data.result.sign_data.temporary_channel_id;
 			let signingData = this.data.signingData[tempChannelId];
-			const fundingAddress = signingData.addressIndex;
+			const fundingAddress = signingData.fundingAddress;
 			const privkey = await getPrivateKey({
 				addressData: fundingAddress,
 				selectedNetwork: this.selectedNetwork,
@@ -1148,6 +1193,11 @@ export default class ObdApi {
 		}
 	}
 
+	/**
+	 * Listening 110034
+	 * @param {TOnAssetFundingCreated} data
+	 * @return {Promise<Result<ISendSignedHex101035>>}
+	 */
 	async onAssetFundingCreated(
 		data: TOnAssetFundingCreated,
 	): Promise<Result<ISendSignedHex101035>> {
@@ -1334,6 +1384,8 @@ export default class ObdApi {
 		}
 		let newTempPrivKey = newAddressIndexPrivKey.value || '';
 		let lastTempPrivKey = signingData?.kTempPrivKey || '';
+
+		//TODO: Decode hash and determine if the new channel state is not favorable. If unfavorable, refuse the commitment tx.
 
 		// will send -100352 commitmentTransactionAccepted
 		let info: CommitmentTxSigned = {
@@ -1877,7 +1929,7 @@ export default class ObdApi {
 
 	/**
 	 * MsgType_ClientSign_AssetFunding_AliceSignRD_1134
-	 * @param info      SignedInfo101134
+	 * @param {SignedInfo101134} info
 	 */
 	async sendSignedHex101134(info: SignedInfo101134): Promise<Result<any>> {
 		if (this.isNotString(info.channel_id)) {
@@ -3848,5 +3900,42 @@ export default class ObdApi {
 
 	getInfo(): ILogin {
 		return this.loginData;
+	}
+
+	/**
+	 * Generates and returns a new signing address and updates the nextAddressIndex to prevent reuse.
+	 */
+	async getNewSigningAddress(): Promise<Result<IAddressContent>> {
+		const nextOmniboltAddress = await getNextOmniboltAddress({
+			addressIndex: this.data.nextAddressIndex,
+			selectedNetwork: this.selectedNetwork,
+			mnemonic: this.mnemonic,
+		});
+		if (nextOmniboltAddress.isErr()) {
+			return err(nextOmniboltAddress.error.message);
+		}
+		const addressIndex = this.data.nextAddressIndex;
+		this.data.nextAddressIndex = nextOmniboltAddress.value;
+		this.saveData(this.data);
+		return ok(addressIndex);
+	}
+
+	/**
+	 * Generates and returns a funding address via the provided index.
+	 */
+	async getFundingAddressByIndex({
+		index,
+	}: {
+		index: number;
+	}): Promise<Result<IAddressContent>> {
+		const fundingAddress = await generateFundingAddress({
+			index,
+			selectedNetwork: this.selectedNetwork,
+			mnemonic: this.mnemonic,
+		});
+		if (fundingAddress.isErr()) {
+			return err(fundingAddress.error.message);
+		}
+		return ok(fundingAddress.value);
 	}
 }
