@@ -685,16 +685,26 @@ export interface ICheckpoints {
 	[key: string]: ICheckpoint;
 }
 
+export interface IFundingAddress extends IAddressContent {
+	assets: [];
+}
+
+export type TFundingAddresses = {
+	[key: string]: IAddressContent;
+};
+
 export interface IData {
 	nextAddressIndex: IAddressContent;
 	signingData: ISigningData;
 	checkpoints: ICheckpoints;
+	fundingAddresses: TFundingAddresses;
 }
 
 export interface ISaveData {
 	nextAddressIndex: IAddressContent;
 	signingData: ISigningData;
 	checkpoints: ICheckpoints;
+	fundingAddresses: TFundingAddresses;
 }
 
 export type TAvailableNetworks = 'bitcoin' | 'bitcoinTestnet';
@@ -739,6 +749,13 @@ export interface IListenerParams<TStart, TSuccess> {
 	start: (data: TStart) => any;
 	success: (data: TSuccess) => any;
 	failure: (data: any) => any;
+}
+
+export interface ISignP2PKH {
+	txhex: string;
+	inputs: IFundingInputs[];
+	privkey: string;
+	selectedNetwork?: TAvailableNetworks;
 }
 
 export interface ISignP2SH {
