@@ -1,5 +1,13 @@
 import { IChannelSigningData, IData } from './types';
 
+export const addressContent = {
+	index: 0,
+	path: '',
+	address: '',
+	scriptHash: '',
+	publicKey: '',
+};
+
 export const defaultDataShape: IData = {
 	nextAddressIndex: {
 		index: 0,
@@ -10,14 +18,7 @@ export const defaultDataShape: IData = {
 	},
 	signingData: {},
 	checkpoints: {},
-};
-
-export const addressContent = {
-	index: 0,
-	path: '',
-	address: '',
-	scriptHash: '',
-	publicKey: '',
+	fundingAddresses: {},
 };
 
 export const channelSigningData: IChannelSigningData = {
