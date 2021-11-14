@@ -1,6 +1,6 @@
 import { MessageType, Message, P2PPeer, BtcFundingInfo, FundingBtcCreated, FundingBtcSigned, OmniFundingAssetInfo, OmniSendAssetInfo, OpenChannelInfo, AcceptChannelInfo, AssetFundingCreatedInfo, AssetFundingSignedInfo, SignedInfo100100, SignedInfo100101, SignedInfo100102, SignedInfo100103, SignedInfo100104, SignedInfo100105, SignedInfo100106, SignedInfo100110, SignedInfo100111, SignedInfo100112, SignedInfo100113, SignedInfo100114, SignedInfo100360, SignedInfo100361, SignedInfo100362, SignedInfo100363, SignedInfo100364, SignedInfo101035, SignedInfo101134, CommitmentTx, CommitmentTxSigned, InvoiceInfo, HTLCFindPathInfo, addHTLCInfo, HtlcSignedInfo, ForwardRInfo, SignRInfo, CloseHtlcTxInfo, CloseHtlcTxInfoSigned, IssueFixedAmountInfo, IssueManagedAmoutInfo, OmniSendGrant, OmniSendRevoke, CloseChannelSign, AtomicSwapAccepted, AtomicSwapRequest } from './pojo';
 import { Result } from './result';
-import { IAcceptChannel, IConnect, IGetMyChannels, ILogin, IFundingBitcoin, IBitcoinFundingCreated, ISendSignedHex100341, TOnBitcoinFundingCreated, TOnChannelOpenAttempt, IBitcoinFundingSigned, TOnAssetFundingCreated, IAssetFundingSigned, TSendSignedHex101035, TOnCommitmentTransactionCreated, ICommitmentTransactionAcceptedResponse, ISendSignedHex100361Response, TOnAcceptChannel, TOn110353, ICommitmentTransactionCreated, TOn110352, ISendSignedHex100364Response, ISendSignedHex100362Response, ISendSignedHex100363Response, IGetProperty, ICloseChannel, ISaveData, TAvailableNetworks, ISendSignedHex101035, TOmniboltCheckpoints, ISendSignedHex100363, ICommitmentTransactionAcceptedCheckpointData, IListeners } from './types';
+import { IAcceptChannel, IConnect, IGetMyChannels, ILogin, IFundingBitcoin, IBitcoinFundingCreated, ISendSignedHex100341, TOnBitcoinFundingCreated, TOnChannelOpenAttempt, IBitcoinFundingSigned, TOnAssetFundingCreated, IAssetFundingSigned, TSendSignedHex101035, TOnCommitmentTransactionCreated, ICommitmentTransactionAcceptedResponse, ISendSignedHex100361Response, TOnAcceptChannel, TOn110353, ICommitmentTransactionCreated, TOn110352, ISendSignedHex100364Response, ISendSignedHex100362Response, ISendSignedHex100363Response, IGetProperty, ICloseChannel, ISaveData, TAvailableNetworks, ISendSignedHex101035, TOmniboltCheckpoints, ISendSignedHex100363, ICommitmentTransactionAcceptedCheckpointData, IListeners, IAddressContent } from './types';
 export default class ObdApi {
     constructor({ url, loginPhrase, mnemonic, data, saveData, listeners, selectedNetwork, onOpen, onClose, onError, websocket, verbose, }?: {
         url?: string;
@@ -86,6 +86,9 @@ export default class ObdApi {
     onGenAddressFromMnemonic(jsonData: any): void;
     getAddressInfo(index: number): Promise<Result<any>>;
     onGetAddressInfo(jsonData: any): void;
+    getFundingAddress({ index, }: {
+        index?: number;
+    }): Promise<Result<IAddressContent>>;
     openChannel(recipient_node_peer_id: string, recipient_user_peer_id: string, info: OpenChannelInfo): Promise<Result<string>>;
     onOpenChannel(jsonData: any): void;
     acceptChannel(recipient_node_peer_id: string, recipient_user_peer_id: string, info: AcceptChannelInfo): Promise<Result<IAcceptChannel>>;
@@ -225,4 +228,8 @@ export default class ObdApi {
     resumeFromCheckpoints(): Promise<void>;
     logMsg: (p1?: any, p2?: string) => void;
     getInfo(): ILogin;
+    getNewSigningAddress(): Promise<Result<IAddressContent>>;
+    getFundingAddressByIndex({ index, }: {
+        index: number;
+    }): Promise<Result<IAddressContent>>;
 }
