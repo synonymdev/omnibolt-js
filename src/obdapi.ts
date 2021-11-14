@@ -83,11 +83,15 @@ import {
 	ICommitmentTransactionAcceptedCheckpointData,
 	IListeners,
 	IAddressContent,
+	IOpenChannel,
+	IOmniboltResponse,
+	IGetMyChannelsData,
 } from './types';
 import {
 	generateFundingAddress,
 	getNextOmniboltAddress,
 	getPrivateKey,
+	signP2PKH,
 	signP2SH,
 } from './utils';
 import { channelSigningData, defaultDataShape } from './shapes';
@@ -941,6 +945,117 @@ export default class ObdApi {
 
 	onGetAddressInfo(jsonData: any): void {}
 
+	async createChannel(
+		recipient_node_peer_id: string,
+		recipient_user_peer_id: string,
+		fundingAddressIndex = 0,
+	): Promise<Result<IOpenChannel>> {
+		if (this.isNotString(recipient_node_peer_id)) {
+			return err('error recipient_node_peer_id');
+		}
+		if (this.isNotString(recipient_user_peer_id)) {
+			return err('error recipient_user_peer_id');
+		}
+		if (!fundingAddressIndex) {
+			return err('error fundingAddressIndex');
+		}
+		const fundingAddress = await this.getFundingAddress({
+			index: fundingAddressIndex,
+		});
+		if (fundingAddress.isErr()) {
+			return err(fundingAddress.error.message);
+		}
+		const info = {
+			funding_pubkey: fundingAddress.value.publicKey,
+			is_private: false,
+		};
+
+		const openChannelResponse = await this.openChannel(
+			recipient_node_peer_id,
+			recipient_user_peer_id,
+			info,
+		);
+		if (openChannelResponse.isErr()) {
+			return err(openChannelResponse.error.message);
+		}
+		const temporary_channel_id = openChannelResponse.value.temporary_channel_id;
+		const addressIndex = await this.getNewSigningAddress();
+		if (addressIndex.isErr()) {
+			return err(addressIndex.error.message);
+		}
+		const data = {
+			fundingAddress: fundingAddress.value,
+			addressIndex: addressIndex.value,
+		};
+		this.saveSigningData(temporary_channel_id, data);
+		return ok(openChannelResponse.value);
+	}
+
+	/**
+	 * Once a temp channel is established this method facilitates the funding of the specified channel.
+	 * @param temporary_channel_id
+	 * @param fundingAddressIndex
+	 * @param times_to_fund - Specify how many times to fund the given channel.
+	 * @param amount_to_fund - How much (in BTC) to fund per round.
+	 * @param miner_fee - How much to pay in fees (in BTC) per funding round.
+	 */
+	async fundTempChannel(
+		temporary_channel_id: string,
+		fundingAddressIndex = 0,
+		times_to_fund = 3,
+		amount_to_fund = 0.00009,
+		miner_fee = 0.000001,
+	): Promise<Result<string>> {
+		const channels = await this.getMyChannels();
+		if (channels.isErr()) {
+			return err(channels.error.message);
+		}
+		const tempChannelFilter: IGetMyChannelsData[] = await Promise.all(
+			channels.value.data.filter(
+				(temp) => temp.temporary_channel_id === temporary_channel_id,
+			),
+		);
+		if (!tempChannelFilter || tempChannelFilter?.length < 1) {
+			return err('Unable to locate provided channel.');
+		}
+		const tempChannel = tempChannelFilter[0];
+		const fundingAddress = await this.getFundingAddress({
+			index: fundingAddressIndex,
+		});
+		if (fundingAddress.isErr()) {
+			return err(fundingAddress.error.message);
+		}
+		let info = new BtcFundingInfo();
+		info.from_address = fundingAddress.value.address;
+		info.to_address = tempChannel.channel_address;
+		info.amount = amount_to_fund;
+		info.miner_fee = miner_fee;
+		for (let i = 0; i < times_to_fund; i++) {
+			const fundingRes = await this.fundingBitcoin(info);
+			if (fundingRes.isErr()) {
+				return err(fundingRes.error.message);
+			}
+			const fundingAddressPrivKey = await getPrivateKey({
+				addressData: fundingAddress.value,
+				selectedNetwork: this.selectedNetwork,
+				mnemonic: this.mnemonic,
+			});
+			if (fundingAddressPrivKey.isErr()) {
+				return err(fundingAddressPrivKey.error.message);
+			}
+			const { hex: txhex, inputs } = fundingRes.value;
+
+			let signed_hex = signP2PKH({
+				txhex,
+				inputs,
+				privkey: fundingAddressPrivKey.value,
+				selectedNetwork: this.selectedNetwork,
+			});
+			this.saveSigningData(temporary_channel_id, { kTbTempData: signed_hex });
+		}
+		return ok('Successfully funded channel.');
+	}
+
 	/**
 	 * This method returns the funding address used to fund the creation of channels and assets for the provided index.
 	 * @param {number} index
@@ -971,6 +1086,17 @@ export default class ObdApi {
 		return ok(fundingAddress);
 	}
 
+	saveSigningData(channel_id, data): void {
+		if (!this.data.signingData[channel_id]) {
+			this.data.signingData[channel_id] = { ...channelSigningData };
+		}
+		this.data.signingData[channel_id] = {
+			...this.data.signingData[channel_id],
+			...data,
+		};
+		this.saveData(this.data);
+	}
+
 	/**
 	 * MsgType_SendChannelOpen_32
 	 * @param recipient_node_peer_id string
@@ -981,7 +1107,7 @@ export default class ObdApi {
 		recipient_node_peer_id: string,
 		recipient_user_peer_id: string,
 		info: OpenChannelInfo,
-	): Promise<Result<string>> {
+	): Promise<Result<IOpenChannel>> {
 		if (this.isNotString(recipient_node_peer_id)) {
 			return err('error recipient_node_peer_id');
 		}
@@ -1006,7 +1132,9 @@ export default class ObdApi {
 		return new Promise(async (resolve) => this.sendData(msg, resolve));
 	}
 
-	onOpenChannel(jsonData: any): void {}
+	onOpenChannel(jsonData: IOmniboltResponse<IOpenChannel>): void {
+		console.log('onOpenChannel', jsonData);
+	}
 
 	/**
 	 * MsgType_SendChannelAccept_33
@@ -1289,6 +1417,58 @@ export default class ObdApi {
 		} catch (e) {
 			return err(e);
 		}
+	}
+
+	/**
+	 * MsgType_FundingSign_RecvAssetFundingSigned_35
+	 * Once sent -100035 AssetFundingSigned , the final channel_id is generated.
+	 * So need update the local saved data for funding private key and channel_id.
+	 * @param e
+	 */
+	async listening110035(e): Promise<Result<any>> {
+		const listenerId = 'listening110035';
+		this.listener(listenerId, 'start', e);
+		console.info('listening110035 = ' + JSON.stringify(e));
+
+		const channel_id = e.channel_id;
+		const newChannelId = channel_id;
+		const oldChannelId = e.temporary_channel_id;
+
+		//Replace old channel id with the new channel id.
+		delete Object.assign(this.data.signingData, {
+			[newChannelId]: this.data.signingData[oldChannelId],
+		})[oldChannelId];
+		this.clearOmniboltCheckpoint({ channelId: oldChannelId });
+		this.saveData(this.data);
+
+		const signingData = this.data.signingData[newChannelId];
+		const selectedNetwork = this.selectedNetwork;
+
+		// Alice sign the tx on client
+		let signed_hex = await signP2SH({
+			is_first_sign: false,
+			txhex: e.hex,
+			pubkey_1: e.pub_key_a,
+			pubkey_2: e.pub_key_b,
+			privkey: signingData.kTempPrivKey,
+			inputs: e.inputs,
+			selectedNetwork,
+		});
+
+		// will send -101134
+		let info = new SignedInfo101134();
+		info.channel_id = channel_id;
+		info.rd_signed_hex = signed_hex;
+
+		const sendSignedHex101134Response = await this.sendSignedHex101134(info);
+		if (sendSignedHex101134Response.isErr()) {
+			return this.listener(
+				listenerId,
+				'failure',
+				sendSignedHex101134Response.error.message,
+			);
+		}
+		return this.listener(listenerId, 'success', sendSignedHex101134Response);
 	}
 
 	async onCommitmentTransactionCreated(

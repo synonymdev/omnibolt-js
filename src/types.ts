@@ -739,6 +739,7 @@ export interface IChannelSigningData {
 	kTempPrivKey: string;
 	kTbSignedHexCR110351: string;
 	kTbSignedHexRR110351: string;
+	kTbTempData: string;
 }
 
 export type IListeners = {
@@ -780,4 +781,31 @@ export interface ICommitmentTransactionAcceptedCheckpointData {
 	info: ICommitmentTransactionAcceptedResponse;
 	nodeID: string;
 	userID: string;
+}
+
+export interface IOpenChannel {
+	chain_hash: string;
+	channel_reserve_satoshis: number;
+	delayed_payment_base_point: string;
+	dust_limit_satoshis: number;
+	fee_rate_per_kw: number;
+	funder_address_index: number;
+	funder_node_address: string;
+	funder_peer_id: string;
+	funding_address: string;
+	funding_pubkey: string;
+	funding_satoshis: number;
+	htlc_base_point: string;
+	htlc_minimum_msat: number;
+	is_private: boolean;
+	length: number;
+	max_accepted_htlcs: number;
+	max_htlc_value_in_flight_msat: number;
+	payment_base_point: string;
+	push_msat: number;
+	revocation_base_point: string;
+	temporary_channel_id: string;
+	to_self_delay: number;
+	value: number | null;
+	value_type: string;
 }

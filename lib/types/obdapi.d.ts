@@ -1,6 +1,6 @@
 import { MessageType, Message, P2PPeer, BtcFundingInfo, FundingBtcCreated, FundingBtcSigned, OmniFundingAssetInfo, OmniSendAssetInfo, OpenChannelInfo, AcceptChannelInfo, AssetFundingCreatedInfo, AssetFundingSignedInfo, SignedInfo100100, SignedInfo100101, SignedInfo100102, SignedInfo100103, SignedInfo100104, SignedInfo100105, SignedInfo100106, SignedInfo100110, SignedInfo100111, SignedInfo100112, SignedInfo100113, SignedInfo100114, SignedInfo100360, SignedInfo100361, SignedInfo100362, SignedInfo100363, SignedInfo100364, SignedInfo101035, SignedInfo101134, CommitmentTx, CommitmentTxSigned, InvoiceInfo, HTLCFindPathInfo, addHTLCInfo, HtlcSignedInfo, ForwardRInfo, SignRInfo, CloseHtlcTxInfo, CloseHtlcTxInfoSigned, IssueFixedAmountInfo, IssueManagedAmoutInfo, OmniSendGrant, OmniSendRevoke, CloseChannelSign, AtomicSwapAccepted, AtomicSwapRequest } from './pojo';
 import { Result } from './result';
-import { IAcceptChannel, IConnect, IGetMyChannels, ILogin, IFundingBitcoin, IBitcoinFundingCreated, ISendSignedHex100341, TOnBitcoinFundingCreated, TOnChannelOpenAttempt, IBitcoinFundingSigned, TOnAssetFundingCreated, IAssetFundingSigned, TSendSignedHex101035, TOnCommitmentTransactionCreated, ICommitmentTransactionAcceptedResponse, ISendSignedHex100361Response, TOnAcceptChannel, TOn110353, ICommitmentTransactionCreated, TOn110352, ISendSignedHex100364Response, ISendSignedHex100362Response, ISendSignedHex100363Response, IGetProperty, ICloseChannel, ISaveData, TAvailableNetworks, ISendSignedHex101035, TOmniboltCheckpoints, ISendSignedHex100363, ICommitmentTransactionAcceptedCheckpointData, IListeners, IAddressContent } from './types';
+import { IAcceptChannel, IConnect, IGetMyChannels, ILogin, IFundingBitcoin, IBitcoinFundingCreated, ISendSignedHex100341, TOnBitcoinFundingCreated, TOnChannelOpenAttempt, IBitcoinFundingSigned, TOnAssetFundingCreated, IAssetFundingSigned, TSendSignedHex101035, TOnCommitmentTransactionCreated, ICommitmentTransactionAcceptedResponse, ISendSignedHex100361Response, TOnAcceptChannel, TOn110353, ICommitmentTransactionCreated, TOn110352, ISendSignedHex100364Response, ISendSignedHex100362Response, ISendSignedHex100363Response, IGetProperty, ICloseChannel, ISaveData, TAvailableNetworks, ISendSignedHex101035, TOmniboltCheckpoints, ISendSignedHex100363, ICommitmentTransactionAcceptedCheckpointData, IListeners, IAddressContent, IOpenChannel, IOmniboltResponse } from './types';
 export default class ObdApi {
     constructor({ url, loginPhrase, mnemonic, data, saveData, listeners, selectedNetwork, onOpen, onClose, onError, websocket, verbose, }?: {
         url?: string;
@@ -86,16 +86,20 @@ export default class ObdApi {
     onGenAddressFromMnemonic(jsonData: any): void;
     getAddressInfo(index: number): Promise<Result<any>>;
     onGetAddressInfo(jsonData: any): void;
+    createChannel(recipient_node_peer_id: string, recipient_user_peer_id: string, fundingAddressIndex?: number): Promise<Result<IOpenChannel>>;
+    fundTempChannel(temporary_channel_id: string, fundingAddressIndex?: number, times_to_fund?: number, amount_to_fund?: number, miner_fee?: number): Promise<Result<string>>;
     getFundingAddress({ index, }: {
         index?: number;
     }): Promise<Result<IAddressContent>>;
-    openChannel(recipient_node_peer_id: string, recipient_user_peer_id: string, info: OpenChannelInfo): Promise<Result<string>>;
-    onOpenChannel(jsonData: any): void;
+    saveSigningData(channel_id: any, data: any): void;
+    openChannel(recipient_node_peer_id: string, recipient_user_peer_id: string, info: OpenChannelInfo): Promise<Result<IOpenChannel>>;
+    onOpenChannel(jsonData: IOmniboltResponse<IOpenChannel>): void;
     acceptChannel(recipient_node_peer_id: string, recipient_user_peer_id: string, info: AcceptChannelInfo): Promise<Result<IAcceptChannel>>;
     onChannelOpenAttempt(data: TOnChannelOpenAttempt): Promise<any>;
     onAcceptChannel(data: TOnAcceptChannel): Promise<void>;
     onBitcoinFundingCreated(data: TOnBitcoinFundingCreated): Promise<Result<IBitcoinFundingSigned>>;
     onAssetFundingCreated(data: TOnAssetFundingCreated): Promise<Result<ISendSignedHex101035>>;
+    listening110035(e: any): Promise<Result<any>>;
     onCommitmentTransactionCreated(data: TOnCommitmentTransactionCreated): Promise<Result<ISendSignedHex100361Response>>;
     handleCommitmentTransactionAccepted({ info, userID, nodeID, }: ICommitmentTransactionAcceptedCheckpointData): Promise<Result<ISendSignedHex100361Response>>;
     on110352(data: TOn110352): Promise<Result<ISendSignedHex100363Response>>;

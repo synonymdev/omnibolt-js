@@ -33,4 +33,5 @@ export const channelSigningData: IChannelSigningData = {
 	kTempPrivKey: '',
 	kTbSignedHexCR110351: '',
 	kTbSignedHexRR110351: '',
+	kTbTempData: '',
 };
