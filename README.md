@@ -1,14 +1,16 @@
 # omnibolt-js
 
+## ⚠️ Warning
+This is pre-alpha software and only intended for use on Bitcoin Testnet. Please use at your own risk. Expect breaking changes.
 
 ## ⚙️ Installation
 
 ```
-yarn add git+ssh://git@github.com/synonymdev/omnibolt-js
+yarn add https://github.com/synonymdev/omnibolt-js.git
 
 or
 
-npm i -S git+ssh://git@github.com/synonymdev/omnibolt-js
+npm i -S https://github.com/synonymdev/omnibolt-js.git
 ```
 
 ## ⚡️ Setup & Usage
@@ -130,4 +132,4 @@ await obdapi.getProperty(id);
 
  - https://github.com/omnilaboratory/DebuggingTool/
            
-### ⚠️ License [MIT](https://github.com/synonymdev/omnibolt-js/blob/master/LICENSE)
+### 📝️ License [MIT](https://github.com/synonymdev/omnibolt-js/blob/master/LICENSE)
