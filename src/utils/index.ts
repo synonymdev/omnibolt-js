@@ -4,7 +4,7 @@
  * @param {TAvailableNetworks} [selectedNetwork]
  */
 import { err, ok, Result } from "../result";
-import { IAddressContent, IGetAddress, ISignP2SH, TAvailableNetworks } from "../types";
+import { IAddressContent, IGetAddress, ISignP2PKH, ISignP2SH, TAvailableNetworks } from "../types";
 import { INetwork, networks } from './networks';
 
 const bitcoin = require('bitcoinjs-lib');
@@ -37,7 +37,7 @@ export const getNextOmniboltAddress = async ({
 	}
 	//`m/${purpose}'/${coinType}'/${account}'/${change}/${addressIndex}`
 	const coinType = selectedNetwork === 'bitcoinTestnet' ? '1' : '0';
-	const addressPath = `m/44'/${coinType}'/0'/0/${index}`;
+	const addressPath = `m/44'/${coinType}'/2'/0/${index}`;
 	const seed = bip39.mnemonicToSeedSync(mnemonic, '');
 	const network = networks[selectedNetwork];
 	const root = bip32.fromSeed(seed, network);
@@ -157,6 +157,73 @@ export const getPrivateKey = async ({
 	} catch (e) {
 		return err(e);
 	}
+};
+
+/**
+ * Sign P2PKH address with TransactionBuilder way
+ * main network: btctool.bitcoin.networks.bitcoin;
+ * @param txhex
+ * @param privkey
+ * @param inputs    all of inputs
+ * @param selectedNetwork
+ */
+
+export const signP2PKH = ({ txhex, privkey, inputs, selectedNetwork = 'bitcoin' }: ISignP2PKH): string => {
+	if (txhex === '') return '';
+	const network = networks[selectedNetwork];
+	const tx      = bitcoin.Transaction.fromHex(txhex);
+	const txb     = bitcoin.TransactionBuilder.fromTransaction(tx, network);
+	const key     = bitcoin.ECPair.fromWIF(privkey, network);
+
+	// Sign all inputs
+	for (let i = 0; i < inputs.length; i++) {
+		txb.sign({
+			prevOutScriptType: 'p2pkh',
+			vin: i,
+			keyPair: key,
+		});
+	}
+
+	// Return hex
+	return txb.build().toHex();
+};
+
+/**
+ * This method returns a funding address based on the provided index.
+ * @async
+ * @param {number} index
+ * @param {string} mnemonic
+ * @param {TAvailableNetworks} [selectedNetwork]
+ * @return {<Promise<Result<IAddressContent>>>}
+ */
+export const generateFundingAddress = async ({
+	index = 0,
+	mnemonic,
+	selectedNetwork,
+}: {
+	index: number;
+	mnemonic: string;
+	selectedNetwork: TAvailableNetworks;
+}): Promise<Result<IAddressContent>> => {
+	//`m/${purpose}'/${coinType}'/${account}'/${change}/${addressIndex}`
+	const coinType = selectedNetwork === 'bitcoinTestnet' ? '1' : '0';
+	const addressPath = `m/44'/${coinType}'/0'/0/${index}`;
+	const seed = bip39.mnemonicToSeedSync(mnemonic, '');
+	const network = networks[selectedNetwork];
+	const root = bip32.fromSeed(seed, network);
+	const addressKeypair = root.derivePath(addressPath);
+	const address = getAddress({
+		keyPair: addressKeypair,
+		network,
+	});
+	const scriptHash = getScriptHash(address, network);
+	return ok({
+		index,
+		path: addressPath,
+		address,
+		scriptHash,
+		publicKey: addressKeypair.publicKey.toString('hex'),
+	});
 };
 
 /**

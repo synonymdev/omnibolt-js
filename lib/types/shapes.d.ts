@@ -1,5 +1,4 @@
 import { IChannelSigningData, IData } from './types';
-export declare const defaultDataShape: IData;
 export declare const addressContent: {
     index: number;
     path: string;
@@ -7,4 +6,5 @@ export declare const addressContent: {
     scriptHash: string;
     publicKey: string;
 };
+export declare const defaultDataShape: IData;
 export declare const channelSigningData: IChannelSigningData;
