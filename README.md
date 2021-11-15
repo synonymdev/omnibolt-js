@@ -19,6 +19,11 @@ npm i -S https://github.com/synonymdev/omnibolt-js.git
 
 ```
 import { ObdApi } from "omnibolt-js";
+import { defaultDataShape } from "omnibolt-js/lib/shapes.js";
+import storage from 'node-persist';
+import WebSocket from 'ws';
+
+await storage.init();
 
 // This is the passphrase used to login to the omnibolt server.
 const loginPhrase = 'snow evidence basic rally wing flock room mountain monitor page sail betray steel major fall pioneer summer tenant pact bargain lucky joy lab parrot';
@@ -41,28 +46,35 @@ It keeps track of funds and the next available
 addresses for signing.
 */
 const saveData = async (data: ISaveData) => {
-    await AsyncStorage.setItem('omnibolt', JSON.stringify(data));
+    await storage.setItem('omnibolt', JSON.stringify(data));
     console.log('Data saved...', data);
 };
 
 /*
-This method is used to retrive the previously stored
+This method is used to retrieve the previously stored
 data from the "saveData" method in your application.
 If no data is available, just pass in an empty object {}
 */
 const getData = async (key = 'omnibolt'): Promise<ISaveData> => {
     try {
-        return JSON.parse(await AsyncStorage.getItem(key)) ?? {};
+    	return JSON.parse(await storage.getItem(key)) ?? { ...defaultDataShape };
     } catch {
-        return {}
+    	return { ...defaultDataShape };
     }
 }
 
 // Retrieve data, if any.
 const data = await getData();
 
-const obdapi: ObdApi = new ObdApi({ loginPhrase, mnemonic, url, selectedNetwork, saveData, data });
-const connectResponse: Result<IConnect> = await obdapi.connect();
+const obdapi: ObdApi = new ObdApi({ websocket: WebSocket });
+const connectResponse: Result<IConnect> = await obdapi.connect({
+    loginPhrase,
+    mnemonic,
+    url,
+    selectedNetwork,
+    saveData,
+    data,
+});
 ```
 
 ##### Get Connection Info

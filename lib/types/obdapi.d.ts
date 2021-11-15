@@ -2,17 +2,7 @@ import { MessageType, Message, P2PPeer, BtcFundingInfo, FundingBtcCreated, Fundi
 import { Result } from './result';
 import { IAcceptChannel, IConnect, IGetMyChannels, ILogin, IFundingBitcoin, IBitcoinFundingCreated, ISendSignedHex100341, TOnBitcoinFundingCreated, TOnChannelOpenAttempt, IBitcoinFundingSigned, TOnAssetFundingCreated, IAssetFundingSigned, TSendSignedHex101035, TOnCommitmentTransactionCreated, ICommitmentTransactionAcceptedResponse, ISendSignedHex100361Response, TOnAcceptChannel, TOn110353, ICommitmentTransactionCreated, TOn110352, ISendSignedHex100364Response, ISendSignedHex100362Response, ISendSignedHex100363Response, IGetProperty, ICloseChannel, ISaveData, TAvailableNetworks, ISendSignedHex101035, TOmniboltCheckpoints, ISendSignedHex100363, ICommitmentTransactionAcceptedCheckpointData, IListeners, IAddressContent, IOpenChannel, IOmniboltResponse } from './types';
 export default class ObdApi {
-    constructor({ url, loginPhrase, mnemonic, data, saveData, listeners, selectedNetwork, onOpen, onClose, onError, websocket, verbose, }?: {
-        url?: string;
-        loginPhrase?: string;
-        mnemonic?: string;
-        data?: ISaveData;
-        saveData?: (data: ISaveData) => any;
-        listeners?: IListeners | {};
-        selectedNetwork?: TAvailableNetworks;
-        onOpen?: (data: string) => any;
-        onError?: (data: any) => any;
-        onClose?: (code: number, reason: string) => any;
+    constructor({ websocket, verbose, }?: {
         websocket?: WebSocket;
         verbose?: boolean;
     });
@@ -22,11 +12,11 @@ export default class ObdApi {
     websocket: WebSocket | any;
     ws: WebSocket | any;
     defaultUrl: string;
-    loginPhrase: string;
+    loginPhrase?: string;
     mnemonic: string;
     data: ISaveData;
     saveData: (data: ISaveData) => any;
-    listeners: IListeners | {};
+    listeners?: IListeners | {};
     selectedNetwork: TAvailableNetworks;
     globalCallback: Function | undefined;
     callbackMap: Map<number, Function>;
@@ -46,13 +36,13 @@ export default class ObdApi {
         mnemonic: string;
         listeners: IListeners | undefined;
         selectedNetwork: TAvailableNetworks;
-        onMessage: (data: any) => any;
-        onChannelCloseAttempt: (data: any) => any;
+        onMessage?: (data: any) => any;
+        onChannelCloseAttempt?: (data: any) => any;
         onAcceptChannel?: (data: TOnAcceptChannel) => any;
-        onChannelClose: (data: any) => any;
-        onOpen: (data: string) => any;
-        onError: (e: string | object) => any;
-        onClose: (code: number, reason: string) => any;
+        onChannelClose?: (data: any) => any;
+        onOpen?: (data: string) => any;
+        onError?: (e: string | object) => any;
+        onClose?: (code: number, reason: string) => any;
         onAddHTLC: (data: any) => any;
         onForwardR: (data: any) => any;
         onSignR: (data: any) => any;
