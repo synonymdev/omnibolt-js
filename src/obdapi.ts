@@ -100,44 +100,22 @@ const DEFAULT_URL = '62.234.216.108:60020/wstest';
 
 export default class ObdApi {
 	constructor({
-		url = DEFAULT_URL, //Omnibolt server to connect to.
-		loginPhrase = '', //Mnemonic phrase used to login to the omnibolt server.
-		mnemonic = '', //Used to generate keys locally when transferring assets & opening/closing channels.
-		data = defaultDataShape, //Will resemble the signingData object in the app to manage channel signing data/state.
-		saveData = (): any => null, //Used to update/save the data object.
-		listeners = {},
-		selectedNetwork = 'bitcoin',
-		onOpen = (): any => null,
-		onClose = (): any => null,
-		onError = (): any => null,
 		websocket,
 		verbose = false,
 	}: {
-		url?: string;
-		loginPhrase?: string;
-		mnemonic?: string;
-		data?: ISaveData;
-		saveData?: (data: ISaveData) => any;
-		listeners?: IListeners | {};
-		selectedNetwork?: TAvailableNetworks;
-		onOpen?: (data: string) => any;
-		onError?: (data: any) => any;
-		onClose?: (code: number, reason: string) => any;
 		websocket?: WebSocket;
 		verbose?: boolean;
 	} = {}) {
-		this.defaultUrl = url;
-		this.loginPhrase = loginPhrase;
-		this.mnemonic = mnemonic;
-		this.data = data;
-		this.saveData = saveData;
-		this.listeners = listeners;
-		this.selectedNetwork = selectedNetwork;
-		this.onOpen = onOpen;
-		this.onClose = onClose;
-		this.onError = onError;
-		this.websocket = websocket ?? WebSocket;
+		this.websocket = websocket;
 		this.verbose = verbose;
+		this.defaultUrl = DEFAULT_URL;
+		this.selectedNetwork = 'bitcoinTestnet';
+		this.saveData = (): null => null;
+		this.onOpen = (): null => null;
+		this.onClose = (): null => null;
+		this.onError = (): null => null;
+		this.data = { ...defaultDataShape };
+		this.mnemonic = '';
 	}
 	isConnectedToOBD: boolean = false;
 	isLoggedIn: boolean = false;
@@ -145,11 +123,11 @@ export default class ObdApi {
 	websocket: WebSocket | any;
 	ws: WebSocket | any;
 	defaultUrl: string;
-	loginPhrase: string;
+	loginPhrase?: string;
 	mnemonic: string;
 	data: ISaveData;
 	saveData: (data: ISaveData) => any;
-	listeners: IListeners | {};
+	listeners?: IListeners | {};
 	selectedNetwork: TAvailableNetworks;
 	globalCallback: Function | undefined;
 	callbackMap: Map<number, Function> = new Map<number, Function>();
@@ -195,13 +173,13 @@ export default class ObdApi {
 		mnemonic: string;
 		listeners: IListeners | undefined;
 		selectedNetwork: TAvailableNetworks;
-		onMessage: (data: any) => any;
-		onChannelCloseAttempt: (data: any) => any;
+		onMessage?: (data: any) => any;
+		onChannelCloseAttempt?: (data: any) => any;
 		onAcceptChannel?: (data: TOnAcceptChannel) => any;
-		onChannelClose: (data: any) => any;
-		onOpen: (data: string) => any;
-		onError: (e: string | object) => any;
-		onClose: (code: number, reason: string) => any;
+		onChannelClose?: (data: any) => any;
+		onOpen?: (data: string) => any;
+		onError?: (e: string | object) => any;
+		onClose?: (code: number, reason: string) => any;
 		onAddHTLC: (data: any) => any;
 		onForwardR: (data: any) => any;
 		onSignR: (data: any) => any;
@@ -219,6 +197,11 @@ export default class ObdApi {
 			} else {
 				this.defaultUrl = url;
 			}
+
+			if (!this.websocket) {
+				return resolve(err('No websocket available.'));
+			}
+
 			this.ws = new this.websocket(`ws://${this.defaultUrl}`);
 
 			this.data = data ?? defaultDataShape;
