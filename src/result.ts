@@ -14,7 +14,7 @@ export class Ok<T> {
 
 export class Err<T> {
 	public constructor(public readonly error: Error) {
-		console.error(error);
+		console.info(error);
 	}
 
 	public isOk(): this is Ok<T> {
