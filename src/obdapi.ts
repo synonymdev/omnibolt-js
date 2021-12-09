@@ -171,7 +171,7 @@ export default class ObdApi {
 		saveData: (data: ISaveData) => void;
 		loginPhrase: string;
 		mnemonic: string;
-		listeners: IListeners | undefined;
+		listeners?: IListeners;
 		selectedNetwork: TAvailableNetworks;
 		onMessage?: (data: any) => any;
 		onChannelCloseAttempt?: (data: any) => any;
@@ -180,10 +180,10 @@ export default class ObdApi {
 		onOpen?: (data: string) => any;
 		onError?: (e: string | object) => any;
 		onClose?: (code: number, reason: string) => any;
-		onAddHTLC: (data: any) => any;
-		onForwardR: (data: any) => any;
-		onSignR: (data: any) => any;
-		onCloseHTLC: (data: any) => any;
+		onAddHTLC?: (data: any) => any;
+		onForwardR?: (data: any) => any;
+		onSignR?: (data: any) => any;
+		onCloseHTLC?: (data: any) => any;
 	}): Promise<Result<IConnect>> {
 		return new Promise((resolve): void => {
 			if (this.isConnectedToOBD || url !== this.defaultUrl) {
