@@ -9,7 +9,6 @@
     "build": "npm run format && tsc",
     "format": "prettier --write \"src/*.ts\" \"*.js\"",
     "lint": "eslint . --ext .ts,.tsx --fix",
-    "prepublish": "tsc",
     "postinstall": "tsc"
   },
   "types": "lib/types/index.d.ts",
