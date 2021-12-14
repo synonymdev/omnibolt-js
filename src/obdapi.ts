@@ -95,7 +95,7 @@ import {
 	signP2SH,
 } from './utils';
 import { channelSigningData, defaultDataShape } from './shapes';
-import { isNode } from "./utils/browser-or-node";
+import { isNode } from './utils/browser-or-node';
 
 const DEFAULT_URL = '62.234.216.108:60020/wstest';
 

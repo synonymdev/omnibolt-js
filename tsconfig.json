@@ -4,6 +4,7 @@
     "module": "commonjs",
     "outDir": "./lib",
     "declarationDir": "./lib/types",
+    "sourceMap": true,
     "removeComments": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,

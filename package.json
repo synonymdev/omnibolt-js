@@ -8,10 +8,12 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "npm run format && tsc",
     "format": "prettier --write \"src/*.ts\" \"*.js\"",
-    "lint": "eslint . --ext .ts,.tsx --fix",
-    "postinstall": "tsc"
+    "lint": "eslint . --ext .ts,.tsx --fix"
   },
   "types": "lib/types/index.d.ts",
+  "files": [
+    "lib/**/*"
+  ],
   "keywords": [
     "bitcoin",
     "lightning",
@@ -25,7 +27,7 @@
     "@typescript-eslint/parser": "^4.26.1",
     "eslint": "^7.14.0",
     "prettier": "^2.2.0",
-    "typescript": "^4.3.5"
+    "typescript": "^3.9.7"
   },
   "dependencies": {
     "bip32": "^2.0.6",
