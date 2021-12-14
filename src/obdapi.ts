@@ -95,6 +95,7 @@ import {
 	signP2SH,
 } from './utils';
 import { channelSigningData, defaultDataShape } from './shapes';
+import { isNode } from "./utils/browser-or-node";
 
 const DEFAULT_URL = '62.234.216.108:60020/wstest';
 
@@ -198,10 +199,12 @@ export default class ObdApi {
 				this.defaultUrl = url;
 			}
 
+			if (!isNode() && !this.websocket) {
+				this.websocket = WebSocket;
+			}
 			if (!this.websocket) {
 				return resolve(err('No websocket available.'));
 			}
-
 			this.ws = new this.websocket(`ws://${this.defaultUrl}`);
 
 			this.data = data ?? defaultDataShape;
