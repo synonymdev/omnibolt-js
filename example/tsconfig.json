@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "target": "es2017",
+    "module": "commonjs",
+    "outDir": "./lib",
+    "declarationDir": "./lib/types",
+    "sourceMap": true,
+    "removeComments": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "isolatedModules": false,
+    "resolveJsonModule": true,
+    "noImplicitAny": false,
+    "moduleResolution": "node",
+    "declaration": true,
+    "strict": true,
+    "allowJs": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "noUnusedLocals": true,
+    "skipLibCheck": true
+    //"noUnusedParameters": true
+  },
+  "include": [
+    "*/*.ts"
+  ],
+  "exclude": ["node_modules"]
+}
