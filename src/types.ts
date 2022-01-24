@@ -16,6 +16,8 @@ export interface ILogin {
 	userPeerId: string;
 }
 
+export interface IConnectResponse extends IConnect, ILogin {}
+
 export interface IOnChannelOpenAttempt {
 	chain_hash: string;
 	channel_reserve_satoshis: number;
@@ -808,4 +810,14 @@ export interface IOpenChannel {
 	to_self_delay: number;
 	value: number | null;
 	value_type: string;
+}
+
+export interface IFundAssetResponse {
+	hex: string;
+	inputs: {
+		amount: number; //In BTC
+		scriptPubKey: string;
+		txid: string;
+		vout: number;
+	}[];
 }
