@@ -86,6 +86,8 @@ import {
 	IOpenChannel,
 	IOmniboltResponse,
 	IGetMyChannelsData,
+	IFundAssetResponse,
+	IConnectResponse,
 } from './types';
 import {
 	generateFundingAddress,
@@ -148,7 +150,7 @@ export default class ObdApi {
 	};
 	verbose: boolean = false;
 
-	connect({
+	async connect({
 		url,
 		data,
 		saveData,
@@ -185,166 +187,178 @@ export default class ObdApi {
 		onForwardR?: (data: any) => any;
 		onSignR?: (data: any) => any;
 		onCloseHTLC?: (data: any) => any;
-	}): Promise<Result<IConnect>> {
-		return new Promise((resolve): void => {
-			if (this.isConnectedToOBD || url !== this.defaultUrl) {
-				//Disconnect from the current node and connect to the new one
-				//this.logout();
-				if (this.ws) this.disconnect();
-			}
+	}): Promise<Result<IConnectResponse>> {
+		const connectResponse: Result<IConnect> = await new Promise(
+			(resolve): void => {
+				if (this.isConnectedToOBD || url !== this.defaultUrl) {
+					//Disconnect from the current node and connect to the new one
+					//this.logout();
+					if (this.ws) this.disconnect();
+				}
 
-			if (!url) {
-				this.defaultUrl = DEFAULT_URL;
-			} else {
-				this.defaultUrl = url;
-			}
+				if (!url) {
+					this.defaultUrl = DEFAULT_URL;
+				} else {
+					this.defaultUrl = url;
+				}
 
-			if (!isNode() && !this.websocket) {
-				this.websocket = WebSocket;
-			}
-			if (!this.websocket) {
-				return resolve(err('No websocket available.'));
-			}
-			this.ws = new this.websocket(`ws://${this.defaultUrl}`);
+				if (!isNode() && !this.websocket) {
+					this.websocket = WebSocket;
+				}
+				if (!this.websocket) {
+					return resolve(err('No websocket available.'));
+				}
+				this.ws = new this.websocket(`ws://${this.defaultUrl}`);
 
-			this.data = data ?? defaultDataShape;
+				this.data = data ?? defaultDataShape;
 
-			if (saveData) this.saveData = saveData;
-			if (loginPhrase) this.loginPhrase = loginPhrase;
-			if (mnemonic) this.mnemonic = mnemonic;
-			if (listeners) this.listeners = listeners;
-			if (selectedNetwork) this.selectedNetwork = selectedNetwork;
-			if (onMessage) this.onMessage = onMessage;
-			if (onOpen) this.onOpen = onOpen;
-			if (onError) this.onError = onError;
-			if (onClose) this.onClose = onClose;
-			if (onChannelCloseAttempt)
-				this.onChannelCloseAttempt = onChannelCloseAttempt;
-			if (onChannelClose) this.onChannelClose = onChannelClose;
-			if (onAddHTLC) this.onAddHTLC = onAddHTLC;
-			if (onForwardR) this.onForwardR = onForwardR;
-			if (onSignR) this.onSignR = onSignR;
-			if (onCloseHTLC) this.onCloseHTLC = onCloseHTLC;
+				if (saveData) this.saveData = saveData;
+				if (loginPhrase) this.loginPhrase = loginPhrase;
+				if (mnemonic) this.mnemonic = mnemonic;
+				if (listeners) this.listeners = listeners;
+				if (selectedNetwork) this.selectedNetwork = selectedNetwork;
+				if (onMessage) this.onMessage = onMessage;
+				if (onOpen) this.onOpen = onOpen;
+				if (onError) this.onError = onError;
+				if (onClose) this.onClose = onClose;
+				if (onChannelCloseAttempt)
+					this.onChannelCloseAttempt = onChannelCloseAttempt;
+				if (onChannelClose) this.onChannelClose = onChannelClose;
+				if (onAddHTLC) this.onAddHTLC = onAddHTLC;
+				if (onForwardR) this.onForwardR = onForwardR;
+				if (onSignR) this.onSignR = onSignR;
+				if (onCloseHTLC) this.onCloseHTLC = onCloseHTLC;
 
-			this.ws.onopen = (): void => {
-				// connection opened
-				const msg = `Connected to ${this.defaultUrl}`;
-				if (this.onMessage) this.onMessage(msg);
-				this.isConnectedToOBD = true;
-				this.resumeFromCheckpoints().then();
-				this.onOpen(msg);
-			};
+				this.ws.onopen = (): void => {
+					// connection opened
+					const msg = `Connected to ${this.defaultUrl}`;
+					if (this.onMessage) this.onMessage(msg);
+					this.isConnectedToOBD = true;
+					this.resumeFromCheckpoints().then();
+					this.onOpen(msg);
+				};
 
-			this.ws.onmessage = (e): void => {
-				// a message was received
-				try {
-					const jsonData = JSON.parse(e.data);
-					this.getDataFromServer(jsonData);
-					if (this.onMessage) this.onMessage(jsonData);
-					/*
+				this.ws.onmessage = (e): void => {
+					// a message was received
+					try {
+						const jsonData = JSON.parse(e.data);
+						this.getDataFromServer(jsonData);
+						if (this.onMessage) this.onMessage(jsonData);
+						/*
           Someone is attempting to open a channel with you
           */
-					if (jsonData.type == -110032) {
-						if (this.onChannelOpenAttempt) this.onChannelOpenAttempt(jsonData);
-						/*const { funder_node_address, funder_peer_id, funding_pubkey, is_private, funder_address_index } = jsonData.result;
+						if (jsonData.type == -110032) {
+							if (this.onChannelOpenAttempt)
+								this.onChannelOpenAttempt(jsonData);
+							/*const { funder_node_address, funder_peer_id, funding_pubkey, is_private, funder_address_index } = jsonData.result;
             this.openChannel(funder_node_address, funder_peer_id, { funding_pubkey, is_private, funder_address_index }, () => null);*/
-					}
+						}
 
-					/*
+						/*
           Your peer is attempting to cooperatively close a channel
            */
-					if (jsonData.type == -100038 || jsonData.type == -110038) {
-						if (this.onChannelCloseAttempt)
-							this.onChannelCloseAttempt(jsonData);
-					}
+						if (jsonData.type == -100038 || jsonData.type == -110038) {
+							if (this.onChannelCloseAttempt)
+								this.onChannelCloseAttempt(jsonData);
+						}
 
-					/*
+						/*
           A channel open request has been accepted.
           */
-					if (jsonData.type == -110033) {
-						if (this.onAcceptChannel) this.onAcceptChannel(jsonData);
-					}
+						if (jsonData.type == -110033) {
+							if (this.onAcceptChannel) this.onAcceptChannel(jsonData);
+						}
 
-					/*
-					 *A peer is funding a channel with Bitcoin
-					 * */
-					if (jsonData.type == -110340) {
-						//Acknowledge the funding attempt with bitcoinFundingSigned
-						if (this.onBitcoinFundingCreated)
-							this.onBitcoinFundingCreated(jsonData);
-						//this.bitcoinFundingSigned(recipient_node_peer_id, jsonData.result.to_peer_id, { ...jsonData }, () => null);
-					}
+						/*
+						 *A peer is funding a channel with Bitcoin
+						 * */
+						if (jsonData.type == -110340) {
+							//Acknowledge the funding attempt with bitcoinFundingSigned
+							if (this.onBitcoinFundingCreated)
+								this.onBitcoinFundingCreated(jsonData);
+							//this.bitcoinFundingSigned(recipient_node_peer_id, jsonData.result.to_peer_id, { ...jsonData }, () => null);
+						}
 
-					//-110034
-					if (jsonData.type == -110034) {
-						//Acknowledge the asset funding attempt with assetFundingSigned
-						if (this.onAssetFundingCreated)
-							this.onAssetFundingCreated(jsonData);
-						//this.assFundingSigned(recipient_node_peer_id, jsonData.result.to_peer_id, { ...jsonData }, () => null);
-					}
+						//-110034
+						if (jsonData.type == -110034) {
+							//Acknowledge the asset funding attempt with assetFundingSigned
+							if (this.onAssetFundingCreated)
+								this.onAssetFundingCreated(jsonData);
+							//this.assFundingSigned(recipient_node_peer_id, jsonData.result.to_peer_id, { ...jsonData }, () => null);
+						}
 
-					//-110351
-					if (jsonData.type == -110351) {
-						//Auto response to acknowledge creation of the commitment transaction.
-						if (this.onCommitmentTransactionCreated)
-							this.onCommitmentTransactionCreated(jsonData);
-					}
-					//-110353
-					if (jsonData.type == -110353) {
-						//Auto response to acknowledge creation of the commitment transaction.
-						if (this.on110353) this.on110353(jsonData);
-					}
-					//-110352
-					if (jsonData.type == -110352) {
-						//Auto response to acknowledge creation of the commitment transaction.
-						if (this.on110352) this.on110352(jsonData);
-					}
-					/*
-					 *A peer is attempting to close a channel.
-					 * */
-					if (jsonData.type == -110038) {
-						if (this.onChannelClose) this.onChannelClose(jsonData);
-					}
+						//-110351
+						if (jsonData.type == -110351) {
+							//Auto response to acknowledge creation of the commitment transaction.
+							if (this.onCommitmentTransactionCreated)
+								this.onCommitmentTransactionCreated(jsonData);
+						}
+						//-110353
+						if (jsonData.type == -110353) {
+							//Auto response to acknowledge creation of the commitment transaction.
+							if (this.on110353) this.on110353(jsonData);
+						}
+						//-110352
+						if (jsonData.type == -110352) {
+							//Auto response to acknowledge creation of the commitment transaction.
+							if (this.on110352) this.on110352(jsonData);
+						}
+						/*
+						 *A peer is attempting to close a channel.
+						 * */
+						if (jsonData.type == -110038) {
+							if (this.onChannelClose) this.onChannelClose(jsonData);
+						}
 
-					/*
+						/*
            MsgType_HTLC_SendAddHTLC_40
            MsgType_HTLC_RecvAddHTLC_40
            */
-					if (jsonData.type == -110040) {
-						this.onAddHTLC(jsonData);
-					}
+						if (jsonData.type == -110040) {
+							this.onAddHTLC(jsonData);
+						}
 
-					/*
+						/*
            MsgType_HTLC_SendAddHTLCSigned_41
            MsgType_HTLC_RecvAddHTLCSigned_41
            */
-					if (jsonData.type == -100041) {
-						//Sent Add HTLC
+						if (jsonData.type == -100041) {
+							//Sent Add HTLC
+						}
+						this.logMsg(e);
+						resolve(ok(jsonData));
+					} catch (error) {
+						this.logMsg(error);
+						if (this.onMessage) this.onMessage(error);
+						resolve(err(error));
 					}
-					console.log(e);
-					resolve(ok(jsonData));
-				} catch (error) {
-					console.log(error);
-					if (this.onMessage) this.onMessage(error);
-					resolve(err(error));
-				}
-			};
+				};
 
-			this.ws.onerror = (e): void => {
-				// an error occurred
-				console.log(e);
-				this.disconnect();
-				this.onError(e.message);
-				resolve(err(e.message));
-			};
+				this.ws.onerror = (e): void => {
+					// an error occurred
+					this.logMsg(e);
+					this.disconnect();
+					this.onError(e.message);
+					resolve(err(e.message));
+				};
 
-			this.ws.onclose = (e): void => {
-				// connection closed
-				console.log('Closing Up!');
-				this.disconnect();
-				this.onClose(e.code, e.reason);
-			};
-		});
+				this.ws.onclose = (e): void => {
+					// connection closed
+					this.logMsg('Closing Up!');
+					this.disconnect();
+					this.onClose(e.code, e.reason);
+				};
+			},
+		);
+
+		if (connectResponse.isErr()) {
+			return err(connectResponse.error.message);
+		}
+		const loginResponse = await this.logIn();
+		if (loginResponse.isErr()) {
+			return err(loginResponse.error.message);
+		}
+		return ok({ ...connectResponse.value, ...loginResponse.value });
 	}
 
 	/**
@@ -381,12 +395,12 @@ export default class ObdApi {
 	 */
 	sendJsonData(msg: string, type: number, callback: Function): void {
 		if (!this.isConnectedToOBD) {
-			console.log('please try to connect obd again');
+			this.logMsg('please try to connect obd again');
 			return;
 		}
 
 		if (this.isNotString(msg)) {
-			console.log('error request content.');
+			this.logMsg('error request content.');
 			return;
 		}
 
@@ -423,9 +437,9 @@ export default class ObdApi {
 		try {
 			this.ws = new this.websocket(`ws://${this.defaultUrl}`);
 			this.ws.onopen = (e): void => {
-				console.info(e);
+				this.logMsg(e);
 
-				console.info('connect success');
+				this.logMsg('connect success');
 				if (callback !== null) {
 					callback('connect success');
 				}
@@ -498,7 +512,7 @@ export default class ObdApi {
 			}
 
 			if (jsonData.type !== this.messageType.MsgType_Error_0) {
-				console.log(jsonData.result);
+				this.logMsg(jsonData.result);
 			}
 
 			try {
@@ -635,13 +649,13 @@ export default class ObdApi {
 	 * MsgType_UserLogin_2001
 	 * @param mnemonic string
 	 */
-	async logIn(mnemonic: string): Promise<Result<ILogin>> {
+	async logIn(mnemonic?: string): Promise<Result<ILogin>> {
 		if (this.isLoggedIn) {
 			return err('You are already logged in!');
 		}
 
 		if (!mnemonic || this.isNotString(mnemonic)) {
-			mnemonic = this.mnemonic ?? '';
+			mnemonic = this?.loginPhrase ?? '';
 		}
 
 		if (!mnemonic) {
@@ -651,20 +665,22 @@ export default class ObdApi {
 		let msg = new Message();
 		msg.type = this.messageType.MsgType_UserLogin_2001;
 		msg.data['mnemonic'] = mnemonic;
-		return new Promise(async (resolve) => {
-			const loginResponse = await this.sendData(msg, resolve);
-			if (loginResponse && loginResponse.isOk()) {
-				this.loginData = loginResponse.value;
-				return ok(loginResponse.value);
-			}
-			return err(loginResponse?.error?.message);
-		});
+		return new Promise(
+			async (resolve): Promise<Result<ILogin>> => {
+				const loginResponse = await this.sendData(msg, resolve);
+				if (loginResponse && loginResponse.isOk()) {
+					return ok(loginResponse.value);
+				}
+				return err(loginResponse?.error?.message);
+			},
+		);
 	}
 
 	userPeerId: string = '';
 
 	onLogIn(resultData: any): void {
 		if (!this.isLoggedIn) this.isLoggedIn = true;
+		this.loginData = resultData.result;
 	}
 
 	disconnect(): void {
@@ -850,7 +866,9 @@ export default class ObdApi {
 	 * MsgType_Core_Omni_FundingAsset_2120
 	 * @param info OmniFundingAssetInfo
 	 */
-	async fundingAsset(info: OmniFundingAssetInfo): Promise<Result<any>> {
+	async fundingAsset(
+		info: OmniFundingAssetInfo,
+	): Promise<Result<IFundAssetResponse>> {
 		if (this.isNotString(info.from_address)) {
 			return err('empty from_address');
 		}
@@ -942,7 +960,7 @@ export default class ObdApi {
 		if (this.isNotString(recipient_user_peer_id)) {
 			return err('error recipient_user_peer_id');
 		}
-		if (!fundingAddressIndex) {
+		if (!(fundingAddressIndex >= 0)) {
 			return err('error fundingAddressIndex');
 		}
 		const fundingAddress = await this.getFundingAddress({
@@ -1119,7 +1137,7 @@ export default class ObdApi {
 	}
 
 	onOpenChannel(jsonData: IOmniboltResponse<IOpenChannel>): void {
-		console.log('onOpenChannel', jsonData);
+		this.logMsg('onOpenChannel', jsonData);
 	}
 
 	/**
@@ -1414,7 +1432,7 @@ export default class ObdApi {
 	async listening110035(e): Promise<Result<any>> {
 		const listenerId = 'listening110035';
 		this.listener(listenerId, 'start', e);
-		console.info('listening110035 = ' + JSON.stringify(e));
+		this.logMsg('listening110035 = ' + JSON.stringify(e));
 
 		const channel_id = e.channel_id;
 		const newChannelId = channel_id;
@@ -3986,7 +4004,7 @@ export default class ObdApi {
 			};
 			if (save) this.saveData(this.data);
 		} catch (e) {
-			console.log(e);
+			this.logMsg(e);
 		}
 	}
 
@@ -4001,7 +4019,7 @@ export default class ObdApi {
 				delete this.data.checkpoints[channelId];
 			}
 		} catch (e) {
-			console.log(e);
+			this.logMsg(e);
 		}
 	}
 
@@ -4060,7 +4078,8 @@ export default class ObdApi {
 		);
 	}
 
-	logMsg = (p1: any = '', p2 = ''): void => {
+	logMsg = (p1: any = '', p2: any = ''): void => {
+		if (!p1 || !p2) return;
 		if (this.verbose) console.info(p1, p2);
 	};
 
