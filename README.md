@@ -15,7 +15,7 @@ npm i -S https://github.com/synonymdev/omnibolt-js.git
 
 ## ⚡️ Setup & Usage
 
-##### Setup & Connect To Omnibolt Server
+##### Setup & Connect To Omnibolt
 
 ```
 import { ObdApi } from "omnibolt-js";
@@ -30,7 +30,7 @@ const loginPhrase = 'snow evidence basic rally wing flock room mountain monitor 
 
 /*
 This is the mnemonic phrase used for signing and transferring
-assets and should be stored securely and seperately
+assets and should be stored securely and separately
 from the other data.
 */
 const mnemonic = 'table panda praise oyster benefit ticket bonus capital silly burger fatal use oyster cream feel wine trap focus planet sail atom approve album valid';
@@ -38,14 +38,14 @@ const mnemonic = 'table panda praise oyster benefit ticket bonus capital silly b
 // Omnibolt server to connect to.
 const url = '62.234.216.108:60020/wstest';
 
-const selectedNetwork: 'bitcoin' | 'bitcoinTestnet' = 'bitcoinTestnet';
+const selectedNetwork = 'bitcoinTestnet'; //'bitcoin' | 'bitcoinTestnet'
 
 /*
 This is used to save the address signing data.
 It keeps track of funds and the next available
 addresses for signing.
 */
-const saveData = async (data: ISaveData) => {
+const saveData = async (data) => {
     await storage.setItem('omnibolt', JSON.stringify(data));
     console.log('Data saved...', data);
 };
@@ -53,9 +53,9 @@ const saveData = async (data: ISaveData) => {
 /*
 This method is used to retrieve the previously stored
 data from the "saveData" method in your application.
-If no data is available, just pass in an empty object {}
+If no data is available, just pass in an empty object {} or the defaultDataShape object.
 */
-const getData = async (key = 'omnibolt'): Promise<ISaveData> => {
+const getData = async (key = 'omnibolt') => {
     try {
     	return JSON.parse(await storage.getItem(key)) ?? { ...defaultDataShape };
     } catch {
@@ -66,8 +66,11 @@ const getData = async (key = 'omnibolt'): Promise<ISaveData> => {
 // Retrieve data, if any.
 const data = await getData();
 
-const obdapi: ObdApi = new ObdApi({ websocket: WebSocket });
-const connectResponse: Result<IConnect> = await obdapi.connect({
+// Create OBD instance.
+const obdapi = new ObdApi({ websocket: WebSocket });
+
+// Connect to the specified server and setup env params.
+const connectResponse = await obdapi.connect({
     loginPhrase,
     mnemonic,
     url,
@@ -75,11 +78,21 @@ const connectResponse: Result<IConnect> = await obdapi.connect({
     saveData,
     data,
 });
+if (connectResponse.isErr()) {
+    console.log(connectResponse.error.message);
+    return;
+}
 ```
 
 ##### Get Connection Info
 ```
 const info = obdapi.getInfo();
+```
+
+##### Get Funding Address
+This is the address used to fund a given channel with Bitcoin and Omni assets.
+```
+const fundingAddress = await obdapi.getFundingAddress({ index: 0 });
 ```
 
 ##### Open Channel
@@ -108,7 +121,7 @@ obdapi.openChannel(
 
 ##### Get Omnibolt Channels
 ```
-const channelResponse: Result<IGetMyChannels> = await obdapi.getMyChannels();
+const channelResponse = await obdapi.getMyChannels();
 ```
 
 ##### Send Asset
@@ -133,7 +146,7 @@ await obdapi.closeChannel(
 ##### Get Asset Info By ID
 ```
 const id = '137';
-await obdapi.getProperty(id);
+const assetInfo = await obdapi.getProperty(id);
 ```
 
 ### 📖 API Documentation
