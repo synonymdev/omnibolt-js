@@ -305,3 +305,32 @@ export const accMul = (arg1, arg2): number => {
     Math.pow(10, m)
 	);
 };
+
+/**
+ * Used to timeout a request after a specified period of time.
+ * @param {number} ms
+ * @param {Promise<any>} promise
+ * @return {Promise<any>}
+ */
+export const promiseTimeout = (
+	ms: number,
+	promise: Promise<any>,
+): Promise<any> => {
+	let id;
+	let timeout = new Promise((resolve) => {
+		id = setTimeout(() => {
+			resolve(err('Timed Out.'));
+		}, ms);
+	});
+	return Promise.race([promise, timeout]).then((result) => {
+		clearTimeout(id);
+		try {
+			if (result?.isErr()) {
+				return err(result?.error?.message);
+			}
+		} catch (e) {
+			return err(e);
+		}
+		return result;
+	});
+};
