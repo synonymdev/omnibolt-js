@@ -89,6 +89,8 @@ import {
 	IFundAssetResponse,
 	IConnectResponse,
 	ISendSignedHex101034,
+	IListening110035,
+	ISendSignedHex101134,
 } from './types';
 import {
 	generateFundingAddress,
@@ -97,6 +99,7 @@ import {
 	promiseTimeout,
 	signP2PKH,
 	signP2SH,
+	sleep,
 } from './utils';
 import { channelSigningData, defaultDataShape } from './shapes';
 import { isNode } from './utils/browser-or-node';
@@ -734,17 +737,6 @@ export default class ObdApi {
 	}
 
 	/**
-	 * MsgType_Core_GetNewAddress_2101
-	 * @param callback function
-	 */
-	//  getNewAddress(callback: Function) {
-	//   let msg = new Message();
-	//   msg.type = this.messageType.MsgType_Core_GetNewAddress_2101;
-	//   this.sendData(msg, callback);
-	// }
-	//  onGetNewAddressFromOmniCore(jsonData: any) {}
-
-	/**
 	 * MsgType_Core_FundingBTC_2109
 	 * @param info BtcFundingInfo
 	 */
@@ -968,7 +960,11 @@ export default class ObdApi {
 		recipient_node_peer_id: string,
 		recipient_user_peer_id: string,
 		fundingAddressIndex = 0,
-	): Promise<Result<IOpenChannel>> {
+		amount_to_fund = 0.00009,
+		miner_fee = 0.000001,
+		asset_id,
+		asset_amount = 0,
+	): Promise<Result<ISendSignedHex101134>> {
 		if (this.isNotString(recipient_node_peer_id)) {
 			return err('error recipient_node_peer_id');
 		}
@@ -978,6 +974,10 @@ export default class ObdApi {
 		if (!(fundingAddressIndex >= 0)) {
 			return err('error fundingAddressIndex');
 		}
+		if (!asset_id) return err('Please prove an asset_id.');
+		if (!asset_amount)
+			return err('Please provide an asset_amount that is greater than 0.');
+
 		const fundingAddress = await this.getFundingAddress({
 			index: fundingAddressIndex,
 		});
@@ -997,6 +997,12 @@ export default class ObdApi {
 		if (openChannelResponse.isErr()) {
 			return err(openChannelResponse.error);
 		}
+
+		const channelAcceptResponse = await this.waitForPeer(-110033, 10000);
+		if (channelAcceptResponse.isErr()) {
+			return err(channelAcceptResponse.error.message);
+		}
+
 		const temporary_channel_id = openChannelResponse.value.temporary_channel_id;
 		const addressIndex = await this.getNewSigningAddress();
 		if (addressIndex.isErr()) {
@@ -1006,8 +1012,21 @@ export default class ObdApi {
 			fundingAddress: fundingAddress.value,
 			addressIndex: addressIndex.value,
 		};
-		this.saveSigningData(temporary_channel_id, data);
-		return ok(openChannelResponse.value);
+		await this.saveSigningData(temporary_channel_id, data);
+
+		// Temporary hack to prevent errors when auto-creating channels.
+		await sleep(2000);
+
+		return await this.fundTempChannel(
+			temporary_channel_id,
+			fundingAddressIndex,
+			amount_to_fund,
+			miner_fee,
+			asset_id,
+			asset_amount,
+			recipient_node_peer_id,
+			recipient_user_peer_id,
+		);
 	}
 
 	/**
@@ -1026,20 +1045,122 @@ export default class ObdApi {
 	}
 
 	/**
+	 * This method is used to fund Bitcoin three times when creating a channel.
+	 * @param {BtcFundingInfo} info
+	 * @param {string} temporary_channel_id
+	 * @param {string} recipient_node_peer_id
+	 * @param {string} recipient_user_peer_id
+	 * @param {string} privkey
+	 * @param {number} times_to_fund
+	 * @return {Promise<Result<string>>}
+	 */
+	fundLoop = async ({
+		info,
+		temporary_channel_id,
+		recipient_node_peer_id,
+		recipient_user_peer_id,
+		privkey,
+		times_to_fund,
+	}: {
+		info: BtcFundingInfo;
+		temporary_channel_id: string;
+		recipient_node_peer_id: string;
+		recipient_user_peer_id: string;
+		privkey: string;
+		times_to_fund: number;
+	}): Promise<Result<string>> => {
+		for (let i = 0; i < times_to_fund; i++) {
+			const fundingRes = await this.fundingBitcoin(info);
+			if (fundingRes.isErr()) {
+				return err(fundingRes.error);
+			}
+
+			const { hex: txhex, inputs } = fundingRes.value;
+
+			let signed_hex = signP2PKH({
+				txhex,
+				inputs,
+				privkey,
+				selectedNetwork: this.selectedNetwork,
+			});
+			this.saveSigningData(temporary_channel_id, { kTbTempData: signed_hex });
+
+			const fundingBitcoinCreatedInfo = new FundingBtcCreated();
+			fundingBitcoinCreatedInfo.temporary_channel_id = temporary_channel_id;
+			fundingBitcoinCreatedInfo.funding_tx_hex = signed_hex;
+			const fundingBitcoinCreatedResponse = await this.bitcoinFundingCreated(
+				recipient_node_peer_id,
+				recipient_user_peer_id,
+				fundingBitcoinCreatedInfo,
+			);
+			if (fundingBitcoinCreatedResponse.isErr()) {
+				return err(fundingBitcoinCreatedResponse.error.message);
+			}
+
+			if (fundingBitcoinCreatedResponse.value.hex) {
+				const signed_hex100341 = await signP2SH({
+					is_first_sign: true,
+					txhex: fundingBitcoinCreatedResponse.value.hex,
+					pubkey_1: fundingBitcoinCreatedResponse.value.pub_key_a,
+					pubkey_2: fundingBitcoinCreatedResponse.value.pub_key_b,
+					privkey,
+					inputs: fundingBitcoinCreatedResponse.value.inputs,
+					selectedNetwork: this.selectedNetwork,
+				});
+
+				const sendSignedHex100341Response = await this.sendSignedHex100341(
+					recipient_node_peer_id,
+					recipient_user_peer_id,
+					signed_hex100341,
+				);
+				if (sendSignedHex100341Response.isErr()) {
+					return err(sendSignedHex100341Response.error.message);
+				}
+
+				const waitForPeerResponse = await this.waitForPeer<ISendSignedHex100341>(
+					-110350,
+				);
+				try {
+					if (waitForPeerResponse.isErr()) {
+						return err(waitForPeerResponse.error.message);
+					}
+				} catch (e) {
+					return err(e);
+				}
+			}
+		}
+		return ok('Funded successfully.');
+	};
+
+	/**
 	 * Once a temp channel is established this method facilitates the funding of the specified channel.
 	 * @param temporary_channel_id
 	 * @param fundingAddressIndex
-	 * @param times_to_fund - Specify how many times to fund the given channel.
 	 * @param amount_to_fund - How much (in BTC) to fund per round.
 	 * @param miner_fee - How much to pay in fees (in BTC) per funding round.
+	 * @param asset_id
+	 * @param asset_amount
+	 * @param recipient_node_peer_id
+	 * @param recipient_user_peer_id
 	 */
 	async fundTempChannel(
 		temporary_channel_id: string,
 		fundingAddressIndex = 0,
-		times_to_fund = 3,
 		amount_to_fund = 0.00009,
 		miner_fee = 0.000001,
-	): Promise<Result<string>> {
+		asset_id = 137,
+		asset_amount = 0,
+		recipient_node_peer_id,
+		recipient_user_peer_id,
+	): Promise<Result<ISendSignedHex101134>> {
+		const fundingAddress = await this.getFundingAddress({
+			index: fundingAddressIndex,
+		});
+		if (fundingAddress.isErr()) {
+			return err(fundingAddress.error.message);
+		}
+		//TODO: Ensure the Omni asset balance of fundingAddress.value.address is greater than the asset_amount value before proceeding.
+
 		const channels = await this.getMyChannels();
 		if (channels.isErr()) {
 			return err(channels.error.message);
@@ -1053,41 +1174,140 @@ export default class ObdApi {
 			return err('Unable to locate provided channel.');
 		}
 		const tempChannel = tempChannelFilter[0];
-		const fundingAddress = await this.getFundingAddress({
-			index: fundingAddressIndex,
+		const timesToFund = Math.abs(3 - tempChannel.btc_funding_times);
+		//TODO: Ensure the Bitcoin balance of fundingAddress.value.address is greater than (amount_to_fund + miner_fee) * timesToFund before proceeding.
+
+		const fundingAddressPrivKey = await getPrivateKey({
+			addressData: fundingAddress.value,
+			selectedNetwork: this.selectedNetwork,
+			mnemonic: this.mnemonic,
 		});
-		if (fundingAddress.isErr()) {
-			return err(fundingAddress.error.message);
+		if (fundingAddressPrivKey.isErr()) {
+			return err(fundingAddressPrivKey.error.message);
 		}
+
 		let info = new BtcFundingInfo();
 		info.from_address = fundingAddress.value.address;
 		info.to_address = tempChannel.channel_address;
 		info.amount = amount_to_fund;
 		info.miner_fee = miner_fee;
-		for (let i = 0; i < times_to_fund; i++) {
-			const fundingRes = await this.fundingBitcoin(info);
-			if (fundingRes.isErr()) {
-				return err(fundingRes.error.message);
-			}
-			const fundingAddressPrivKey = await getPrivateKey({
-				addressData: fundingAddress.value,
-				selectedNetwork: this.selectedNetwork,
-				mnemonic: this.mnemonic,
-			});
-			if (fundingAddressPrivKey.isErr()) {
-				return err(fundingAddressPrivKey.error.message);
-			}
-			const { hex: txhex, inputs } = fundingRes.value;
-
-			let signed_hex = signP2PKH({
-				txhex,
-				inputs,
+		const [fundLoopResponse] = await Promise.all([
+			this.fundLoop({
+				info,
+				recipient_user_peer_id,
+				recipient_node_peer_id,
 				privkey: fundingAddressPrivKey.value,
-				selectedNetwork: this.selectedNetwork,
-			});
-			this.saveSigningData(temporary_channel_id, { kTbTempData: signed_hex });
+				times_to_fund: timesToFund,
+				temporary_channel_id,
+			}),
+		]);
+		if (fundLoopResponse.isErr()) {
+			return err(fundLoopResponse.error);
 		}
-		return ok('Successfully funded channel.');
+
+		const fundingAssetInfo = new OmniFundingAssetInfo();
+		fundingAssetInfo.from_address = fundingAddress.value.address;
+		fundingAssetInfo.to_address = tempChannel.channel_address;
+		fundingAssetInfo.property_id = asset_id;
+		fundingAssetInfo.amount = asset_amount;
+		fundingAssetInfo.miner_fee = miner_fee;
+
+		const fundingAssetResponse = await this.fundingAsset(fundingAssetInfo);
+		if (fundingAssetResponse.isErr())
+			return err(fundingAssetResponse.error.message);
+
+		const signed_hex = signP2PKH({
+			txhex: fundingAssetResponse.value.hex,
+			privkey: fundingAddressPrivKey.value,
+			inputs: fundingAssetResponse.value.inputs,
+			selectedNetwork: this.selectedNetwork,
+		});
+
+		this.saveSigningData(temporary_channel_id, { kTbTempData: signed_hex });
+
+		const assetFundingCreatedInfo = new AssetFundingCreatedInfo();
+		assetFundingCreatedInfo.temporary_channel_id = temporary_channel_id;
+		assetFundingCreatedInfo.funding_tx_hex = signed_hex;
+		assetFundingCreatedInfo.temp_address_pub_key =
+			fundingAddress.value.publicKey;
+		assetFundingCreatedInfo.temp_address_index = fundingAddress.value.index;
+		const assetFundingCreatedResponse = await this.assetFundingCreated(
+			recipient_node_peer_id,
+			recipient_user_peer_id,
+			assetFundingCreatedInfo,
+		);
+		if (assetFundingCreatedResponse.isErr()) {
+			return err(assetFundingCreatedResponse.error.message);
+		}
+
+		// Alice sign the tx on client
+		const signed_hex101034 = await signP2SH({
+			is_first_sign: true,
+			txhex: assetFundingCreatedResponse.value.hex,
+			pubkey_1: assetFundingCreatedResponse.value.pub_key_a,
+			pubkey_2: assetFundingCreatedResponse.value.pub_key_b,
+			privkey: fundingAddressPrivKey.value,
+			inputs: assetFundingCreatedResponse.value.inputs,
+			selectedNetwork: this.selectedNetwork,
+		});
+
+		const sendSignedHex101034Response = await this.sendSignedHex101034(
+			recipient_node_peer_id,
+			recipient_user_peer_id,
+			signed_hex101034,
+		);
+		if (sendSignedHex101034Response.isErr()) {
+			return err(sendSignedHex101034Response.error.message);
+		}
+
+		const waitFor110035Response = await this.waitForPeer<IListening110035>(
+			-110035,
+		);
+		if (waitFor110035Response.isErr()) {
+			return err(waitFor110035Response.error.message);
+		}
+
+		this.saveSigningData(temporary_channel_id, {
+			kTempPrivKey: fundingAddressPrivKey.value,
+		});
+
+		const signed_hex101134 = await signP2SH({
+			is_first_sign: true,
+			txhex: waitFor110035Response.value.hex,
+			pubkey_1: waitFor110035Response.value.pub_key_a,
+			pubkey_2: waitFor110035Response.value.pub_key_b,
+			privkey: fundingAddressPrivKey.value,
+			inputs: waitFor110035Response.value.inputs,
+			selectedNetwork: this.selectedNetwork,
+		});
+
+		let sendSignedHex101134Info = new SignedInfo101134();
+		sendSignedHex101134Info.channel_id = waitFor110035Response.value.channel_id;
+		sendSignedHex101134Info.rd_signed_hex = signed_hex101134;
+		const sendSignedHex101134Response = await this.sendSignedHex101134(
+			sendSignedHex101134Info,
+		);
+		if (sendSignedHex101134Response.isErr()) {
+			return err(sendSignedHex101134Response.error.message);
+		}
+
+		this.saveData(this.data);
+
+		//Channel successfully created.
+		//Replace old channel id with the new channel id.
+		delete Object.assign(this.data.signingData, {
+			[sendSignedHex101134Info.channel_id]: this.data.signingData[
+				temporary_channel_id
+			],
+		})[temporary_channel_id];
+
+		//Remove any pre-existing checkpoints.
+		this.clearOmniboltCheckpoint({ channelId: temporary_channel_id });
+
+		//Wrap up and save data.
+		this.saveData(this.data);
+
+		return sendSignedHex101134Response;
 	}
 
 	/**
@@ -1360,12 +1580,16 @@ export default class ObdApi {
 	 * listening to -110340 and send -100350 bitcoinFundingSigned
 	 * @param e
 	 */
-	async listening110340(e): Promise<Result<{
-		nodeID: string;
-		userID: string;
-		info350: FundingBtcSigned;
-		privkey: string;
-	}>> {
+	async listening110340(
+		e,
+	): Promise<
+		Result<{
+			nodeID: string;
+			userID: string;
+			info350: FundingBtcSigned;
+			privkey: string;
+		}>
+	> {
 		const selectedNetwork = this.selectedNetwork;
 		//let myUserID   = e.to_peer_id;
 		let channel_id = e.temporary_channel_id;
@@ -2207,8 +2431,11 @@ export default class ObdApi {
 	/**
 	 * MsgType_ClientSign_AssetFunding_AliceSignRD_1134
 	 * @param {SignedInfo101134} info
+	 * @return {ISendSignedHex101134}
 	 */
-	async sendSignedHex101134(info: SignedInfo101134): Promise<Result<any>> {
+	async sendSignedHex101134(
+		info: SignedInfo101134,
+	): Promise<Result<ISendSignedHex101134>> {
 		if (this.isNotString(info.channel_id)) {
 			return err('empty channel_id');
 		}
