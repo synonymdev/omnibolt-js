@@ -88,11 +88,13 @@ import {
 	IGetMyChannelsData,
 	IFundAssetResponse,
 	IConnectResponse,
+	ISendSignedHex101034,
 } from './types';
 import {
 	generateFundingAddress,
 	getNextOmniboltAddress,
 	getPrivateKey,
+	promiseTimeout,
 	signP2PKH,
 	signP2SH,
 } from './utils';
@@ -118,6 +120,7 @@ export default class ObdApi {
 		this.onClose = (): null => null;
 		this.onError = (): null => null;
 		this.data = { ...defaultDataShape };
+		this.pendingPeerResponses = {};
 		this.mnemonic = '';
 	}
 	isConnectedToOBD: boolean = false;
@@ -129,6 +132,7 @@ export default class ObdApi {
 	loginPhrase?: string;
 	mnemonic: string;
 	data: ISaveData;
+	pendingPeerResponses: {};
 	saveData: (data: ISaveData) => any;
 	listeners?: IListeners | {};
 	selectedNetwork: TAvailableNetworks;
@@ -244,6 +248,16 @@ export default class ObdApi {
 						const jsonData = JSON.parse(e.data);
 						this.getDataFromServer(jsonData);
 						if (this.onMessage) this.onMessage(jsonData);
+
+						try {
+							if (jsonData.type in this.pendingPeerResponses) {
+								if (jsonData?.result) {
+									this.pendingPeerResponses[jsonData.type](ok(jsonData.result));
+								} else {
+									this.pendingPeerResponses[jsonData.type](ok(jsonData));
+								}
+							}
+						} catch {}
 						/*
           Someone is attempting to open a channel with you
           */
@@ -997,6 +1011,21 @@ export default class ObdApi {
 	}
 
 	/**
+	 * Used to await a peer response of the provided message type.
+	 * @param {string} methodType
+	 * @param {number} [timeout]
+	 */
+	waitForPeer<T>(methodType: number, timeout = 2000): Promise<Result<T>> {
+		return new Promise(async (resolve) => {
+			this.pendingPeerResponses[methodType] = resolve;
+			return await promiseTimeout(
+				timeout,
+				this.pendingPeerResponses[methodType],
+			);
+		});
+	}
+
+	/**
 	 * Once a temp channel is established this method facilitates the funding of the specified channel.
 	 * @param temporary_channel_id
 	 * @param fundingAddressIndex
@@ -1324,6 +1353,69 @@ export default class ObdApi {
 		} catch (e) {
 			return this.listener(listenerId, 'failure', e);
 		}
+	}
+
+	/**
+	 * auto response to -100340 (bitcoinFundingCreated)
+	 * listening to -110340 and send -100350 bitcoinFundingSigned
+	 * @param e
+	 */
+	async listening110340(e): Promise<Result<{
+		nodeID: string;
+		userID: string;
+		info350: FundingBtcSigned;
+		privkey: string;
+	}>> {
+		const selectedNetwork = this.selectedNetwork;
+		//let myUserID   = e.to_peer_id;
+		let channel_id = e.temporary_channel_id;
+		const signingData = this.data.signingData[channel_id];
+		const fundingAddress = signingData.fundingAddress;
+		const privkeyResponse = await getPrivateKey({
+			addressData: fundingAddress,
+			selectedNetwork,
+			mnemonic: this.mnemonic,
+		});
+		if (privkeyResponse.isErr()) return err(privkeyResponse.error.message);
+		const privkey = privkeyResponse.value;
+		let data = e.sign_data;
+		const signed_hex = await signP2SH({
+			is_first_sign: false,
+			txhex: data.hex,
+			pubkey_1: data.pub_key_a,
+			pubkey_2: data.pub_key_b,
+			privkey,
+			inputs: data.inputs,
+			selectedNetwork,
+		});
+		//Save signing data if successful.
+		this.data.signingData[channel_id] = {
+			...this.data.signingData[channel_id],
+			kTbSignedHex: signed_hex,
+		};
+
+		this.saveSigningData(channel_id, { funding_txid: e.funding_txid });
+
+		let nodeID = e.funder_node_address;
+		let userID = e.funder_peer_id;
+
+		// will send -100350 bitcoinFundingSigned
+		let info = new FundingBtcSigned();
+		info.temporary_channel_id = channel_id;
+		info.funding_txid = e.funding_txid;
+		info.signed_miner_redeem_transaction_hex = signed_hex;
+		info.approval = true;
+
+		await this.bitcoinFundingSigned(nodeID, userID, info);
+
+		let returnData = {
+			nodeID: nodeID,
+			userID: userID,
+			info350: info,
+			privkey: privkey,
+		};
+
+		return ok(returnData);
 	}
 
 	/**
@@ -2095,7 +2187,7 @@ export default class ObdApi {
 		recipient_node_peer_id: string,
 		recipient_user_peer_id: string,
 		signed_hex: string,
-	): Promise<Result<any>> {
+	): Promise<Result<ISendSignedHex101034>> {
 		if (this.isNotString(recipient_node_peer_id)) {
 			return err('error recipient_node_peer_id');
 		}
@@ -3472,7 +3564,7 @@ export default class ObdApi {
 		page_index?: Number,
 	): Promise<Result<IGetMyChannels>> {
 		if (page_size == null || page_size <= 0) {
-			page_size = 10;
+			page_size = 100;
 		}
 
 		if (page_index == null || page_index <= 0) {
