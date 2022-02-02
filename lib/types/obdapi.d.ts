@@ -1,6 +1,6 @@
 import { MessageType, Message, P2PPeer, BtcFundingInfo, FundingBtcCreated, FundingBtcSigned, OmniFundingAssetInfo, OmniSendAssetInfo, OpenChannelInfo, AcceptChannelInfo, AssetFundingCreatedInfo, AssetFundingSignedInfo, SignedInfo100100, SignedInfo100101, SignedInfo100102, SignedInfo100103, SignedInfo100104, SignedInfo100105, SignedInfo100106, SignedInfo100110, SignedInfo100111, SignedInfo100112, SignedInfo100113, SignedInfo100114, SignedInfo100360, SignedInfo100361, SignedInfo100362, SignedInfo100363, SignedInfo100364, SignedInfo101035, SignedInfo101134, CommitmentTx, CommitmentTxSigned, InvoiceInfo, HTLCFindPathInfo, addHTLCInfo, HtlcSignedInfo, ForwardRInfo, SignRInfo, CloseHtlcTxInfo, CloseHtlcTxInfoSigned, IssueFixedAmountInfo, IssueManagedAmoutInfo, OmniSendGrant, OmniSendRevoke, CloseChannelSign, AtomicSwapAccepted, AtomicSwapRequest } from './pojo';
 import { Result } from './result';
-import { IAcceptChannel, IConnect, IGetMyChannels, ILogin, IFundingBitcoin, IBitcoinFundingCreated, ISendSignedHex100341, TOnBitcoinFundingCreated, TOnChannelOpenAttempt, IBitcoinFundingSigned, TOnAssetFundingCreated, IAssetFundingSigned, TSendSignedHex101035, TOnCommitmentTransactionCreated, ICommitmentTransactionAcceptedResponse, ISendSignedHex100361Response, TOnAcceptChannel, TOn110353, ICommitmentTransactionCreated, TOn110352, ISendSignedHex100364Response, ISendSignedHex100362Response, ISendSignedHex100363Response, IGetProperty, ICloseChannel, ISaveData, TAvailableNetworks, ISendSignedHex101035, TOmniboltCheckpoints, ISendSignedHex100363, ICommitmentTransactionAcceptedCheckpointData, IListeners, IAddressContent, IOpenChannel, IOmniboltResponse } from './types';
+import { IAcceptChannel, IGetMyChannels, ILogin, IFundingBitcoin, IBitcoinFundingCreated, ISendSignedHex100341, TOnBitcoinFundingCreated, TOnChannelOpenAttempt, IBitcoinFundingSigned, TOnAssetFundingCreated, IAssetFundingSigned, TSendSignedHex101035, TOnCommitmentTransactionCreated, ICommitmentTransactionAcceptedResponse, ISendSignedHex100361Response, TOnAcceptChannel, TOn110353, ICommitmentTransactionCreated, TOn110352, ISendSignedHex100364Response, ISendSignedHex100362Response, ISendSignedHex100363Response, IGetProperty, ICloseChannel, ISaveData, TAvailableNetworks, ISendSignedHex101035, TOmniboltCheckpoints, ISendSignedHex100363, ICommitmentTransactionAcceptedCheckpointData, IListeners, IAddressContent, IOpenChannel, IOmniboltResponse, IFundAssetResponse, IConnectResponse } from './types';
 export default class ObdApi {
     constructor({ websocket, verbose, }?: {
         websocket?: WebSocket;
@@ -47,14 +47,14 @@ export default class ObdApi {
         onForwardR?: (data: any) => any;
         onSignR?: (data: any) => any;
         onCloseHTLC?: (data: any) => any;
-    }): Promise<Result<IConnect>>;
+    }): Promise<Result<IConnectResponse>>;
     registerEvent(msgType: number, callback: Function): void;
     removeEvent(msgType: number): void;
     sendJsonData(msg: string, type: number, callback: Function): void;
     connectToServer(url: string, callback: Function, globalCallback: Function): import("./result").Err<unknown> | undefined;
     sendData(msg: Message, callback: Function): Result<any>;
     getDataFromServer(jsonData: any): any;
-    logIn(mnemonic: string): Promise<Result<ILogin>>;
+    logIn(mnemonic?: string): Promise<Result<ILogin>>;
     userPeerId: string;
     onLogIn(resultData: any): void;
     disconnect(): void;
@@ -68,7 +68,7 @@ export default class ObdApi {
     bitcoinFundingSigned(recipient_node_peer_id: string, recipient_user_peer_id: string, info: FundingBtcSigned): Promise<Result<IBitcoinFundingSigned>>;
     listProperties(): Promise<Result<any>>;
     onListProperties(jsonData: any): void;
-    fundingAsset(info: OmniFundingAssetInfo): Promise<Result<any>>;
+    fundingAsset(info: OmniFundingAssetInfo): Promise<Result<IFundAssetResponse>>;
     onFundingAsset(jsonData: any): void;
     sendAsset(info: OmniSendAssetInfo): Promise<Result<any>>;
     onSendAsset(jsonData: any): void;
@@ -220,7 +220,7 @@ export default class ObdApi {
         channelId: string;
     }): void;
     resumeFromCheckpoints(): Promise<void>;
-    logMsg: (p1?: any, p2?: string) => void;
+    logMsg: (p1?: any, p2?: any) => void;
     getInfo(): ILogin;
     getNewSigningAddress(): Promise<Result<IAddressContent>>;
     getFundingAddressByIndex({ index, }: {
