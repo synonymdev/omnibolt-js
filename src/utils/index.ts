@@ -4,7 +4,13 @@
  * @param {TAvailableNetworks} [selectedNetwork]
  */
 import { err, ok, Result } from "../result";
-import { IAddressContent, IGetAddress, ISignP2PKH, ISignP2SH, TAvailableNetworks } from "../types";
+import {
+	IAddressContent,
+	IGetAddress,
+	ISignP2PKH,
+	ISignP2SH,
+	TAvailableNetworks
+} from '../types';
 import { INetwork, networks } from './networks';
 
 const bitcoin = require('bitcoinjs-lib');
@@ -333,4 +339,8 @@ export const promiseTimeout = (
 		}
 		return result;
 	});
+};
+
+export const sleep = (ms = 1000): Promise<void> => {
+	return new Promise((resolve) => setTimeout(resolve, ms));
 };
