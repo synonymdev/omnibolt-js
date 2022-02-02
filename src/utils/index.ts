@@ -116,7 +116,7 @@ export const getScriptHash = (
 		}
 		const script = bitcoin.address.toOutputScript(address, network);
 		let hash = bitcoin.crypto.sha256(script);
-		const reversedHash = new Buffer(hash.reverse());
+		const reversedHash = Buffer.from(hash.reverse());
 		return reversedHash.toString('hex');
 	} catch {
 		return '';
