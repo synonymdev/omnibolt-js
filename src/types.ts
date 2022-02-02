@@ -814,6 +814,11 @@ export interface ISendSignedHex100363 {
 	userID: string;
 }
 
+export interface ISendSignedHex101134 {
+	channel_id: string;
+	temporary_channel_id: string;
+}
+
 export interface ICommitmentTransactionAcceptedCheckpointData {
 	info: ICommitmentTransactionAcceptedResponse;
 	nodeID: string;
