@@ -764,3 +764,21 @@ export interface IFundAssetResponse {
         vout: number;
     }[];
 }
+export interface IFundingInfo {
+    fundingAddressIndex?: number;
+    amount_to_fund?: number;
+    miner_fee?: number;
+    asset_id: number;
+    asset_amount: number;
+}
+export interface ICreateChannel {
+    remote_node_address: string;
+    recipient_user_peer_id: string;
+    info: IFundingInfo;
+}
+export interface IFundTempChannel {
+    recipient_node_peer_id: string;
+    recipient_user_peer_id: string;
+    temporary_channel_id: string;
+    info: IFundingInfo;
+}

@@ -1,6 +1,6 @@
 import { MessageType, Message, P2PPeer, BtcFundingInfo, FundingBtcCreated, FundingBtcSigned, OmniFundingAssetInfo, OmniSendAssetInfo, OpenChannelInfo, AcceptChannelInfo, AssetFundingCreatedInfo, AssetFundingSignedInfo, SignedInfo100100, SignedInfo100101, SignedInfo100102, SignedInfo100103, SignedInfo100104, SignedInfo100105, SignedInfo100106, SignedInfo100110, SignedInfo100111, SignedInfo100112, SignedInfo100113, SignedInfo100114, SignedInfo100360, SignedInfo100361, SignedInfo100362, SignedInfo100363, SignedInfo100364, SignedInfo101035, SignedInfo101134, CommitmentTx, CommitmentTxSigned, InvoiceInfo, HTLCFindPathInfo, addHTLCInfo, HtlcSignedInfo, ForwardRInfo, SignRInfo, CloseHtlcTxInfo, CloseHtlcTxInfoSigned, IssueFixedAmountInfo, IssueManagedAmoutInfo, OmniSendGrant, OmniSendRevoke, CloseChannelSign, AtomicSwapAccepted, AtomicSwapRequest } from './pojo';
 import { Result } from './result';
-import { IAcceptChannel, IGetMyChannels, ILogin, IFundingBitcoin, IBitcoinFundingCreated, ISendSignedHex100341, TOnBitcoinFundingCreated, TOnChannelOpenAttempt, IBitcoinFundingSigned, TOnAssetFundingCreated, IAssetFundingSigned, TSendSignedHex101035, TOnCommitmentTransactionCreated, ICommitmentTransactionAcceptedResponse, ISendSignedHex100361Response, TOnAcceptChannel, TOn110353, ICommitmentTransactionCreated, TOn110352, ISendSignedHex100364Response, ISendSignedHex100362Response, ISendSignedHex100363Response, IGetProperty, ICloseChannel, ISaveData, TAvailableNetworks, ISendSignedHex101035, TOmniboltCheckpoints, ISendSignedHex100363, ICommitmentTransactionAcceptedCheckpointData, IListeners, IAddressContent, IOpenChannel, IOmniboltResponse, IFundAssetResponse, IConnectResponse, ISendSignedHex101034, ISendSignedHex101134 } from './types';
+import { IAcceptChannel, IGetMyChannels, ILogin, IFundingBitcoin, IBitcoinFundingCreated, ISendSignedHex100341, TOnBitcoinFundingCreated, TOnChannelOpenAttempt, IBitcoinFundingSigned, TOnAssetFundingCreated, IAssetFundingSigned, TSendSignedHex101035, TOnCommitmentTransactionCreated, ICommitmentTransactionAcceptedResponse, ISendSignedHex100361Response, TOnAcceptChannel, TOn110353, ICommitmentTransactionCreated, TOn110352, ISendSignedHex100364Response, ISendSignedHex100362Response, ISendSignedHex100363Response, IGetProperty, ICloseChannel, ISaveData, TAvailableNetworks, ISendSignedHex101035, TOmniboltCheckpoints, ISendSignedHex100363, ICommitmentTransactionAcceptedCheckpointData, IListeners, IAddressContent, IOpenChannel, IOmniboltResponse, IFundAssetResponse, IConnectResponse, ISendSignedHex101034, ISendSignedHex101134, ICreateChannel, IFundTempChannel } from './types';
 export default class ObdApi {
     constructor({ websocket, verbose, }?: {
         websocket?: WebSocket;
@@ -77,7 +77,7 @@ export default class ObdApi {
     onGenAddressFromMnemonic(jsonData: any): void;
     getAddressInfo(index: number): Promise<Result<any>>;
     onGetAddressInfo(jsonData: any): void;
-    createChannel(recipient_node_peer_id: string, recipient_user_peer_id: string, fundingAddressIndex: number | undefined, amount_to_fund: number | undefined, miner_fee: number | undefined, asset_id: any, asset_amount?: number): Promise<Result<ISendSignedHex101134>>;
+    createChannel({ remote_node_address, recipient_user_peer_id, info: { fundingAddressIndex, amount_to_fund, miner_fee, asset_id, asset_amount, }, }: ICreateChannel): Promise<Result<ISendSignedHex101134>>;
     waitForPeer<T>(methodType: number, timeout?: number): Promise<Result<T>>;
     fundLoop: ({ info, temporary_channel_id, recipient_node_peer_id, recipient_user_peer_id, privkey, times_to_fund, }: {
         info: BtcFundingInfo;
@@ -87,7 +87,7 @@ export default class ObdApi {
         privkey: string;
         times_to_fund: number;
     }) => Promise<Result<string>>;
-    fundTempChannel(temporary_channel_id: string, fundingAddressIndex: number | undefined, amount_to_fund: number | undefined, miner_fee: number | undefined, asset_id: number | undefined, asset_amount: number | undefined, recipient_node_peer_id: any, recipient_user_peer_id: any): Promise<Result<ISendSignedHex101134>>;
+    fundTempChannel({ recipient_node_peer_id, recipient_user_peer_id, temporary_channel_id, info: { fundingAddressIndex, amount_to_fund, miner_fee, asset_id, asset_amount, }, }: IFundTempChannel): Promise<Result<ISendSignedHex101134>>;
     getFundingAddress({ index, }: {
         index?: number;
     }): Promise<Result<IAddressContent>>;
