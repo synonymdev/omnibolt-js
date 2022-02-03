@@ -163,7 +163,41 @@ export interface IFundingBitcoin {
 	total_in_amount: number;
 }
 
-export interface IBitcoinFundingCreated {}
+export interface IBitcoinFundingCreated {
+	hex: string;
+	inputs: {
+		amount: number; //In BTC
+		redeemScript: string;
+		scriptPubKey: string;
+		txid: string;
+		vout: number;
+	}[];
+	is_multisig: boolean;
+	pub_key_a: string;
+	pub_key_b: string;
+	temporary_channel_id: string;
+	total_in_amount: number;
+	total_out_amount: number;
+}
+
+export interface IInputs {
+	amount: number; //In BTC
+	redeemScript: string;
+	scriptPubKey: string;
+	sequence: number;
+	txid: string;
+	vout: number;
+}
+export interface IListening110035 {
+	channel_id: string;
+	hex: string;
+	inputs: IInputs[];
+	is_multisig: boolean;
+	pub_key_a: string;
+	pub_key_b: string;
+	temporary_channel_id: string;
+	to_peer_id: string;
+}
 
 export interface IOnBitcoinFundingCreated {
 	funder_node_address: string;
@@ -185,6 +219,7 @@ export interface IOnBitcoinFundingCreated {
 
 export type TOnBitcoinFundingCreated = IOmniboltResponse<IOnBitcoinFundingCreated>;
 
+export interface ISendSignedHex101034 extends IOnAssetFundingCreated {}
 export interface IOnAssetFundingCreated {
 	c1a_rsmc_hex: string;
 	channel_id: string;
@@ -779,6 +814,11 @@ export interface ISendSignedHex100363 {
 	userID: string;
 }
 
+export interface ISendSignedHex101134 {
+	channel_id: string;
+	temporary_channel_id: string;
+}
+
 export interface ICommitmentTransactionAcceptedCheckpointData {
 	info: ICommitmentTransactionAcceptedResponse;
 	nodeID: string;
@@ -820,4 +860,25 @@ export interface IFundAssetResponse {
 		txid: string;
 		vout: number;
 	}[];
+}
+
+export interface IFundingInfo {
+	fundingAddressIndex?: number;
+	amount_to_fund?: number; // X3
+	miner_fee?: number; // X3
+	asset_id: number;
+	asset_amount: number;
+}
+
+export interface ICreateChannel {
+	remote_node_address: string;
+	recipient_user_peer_id: string;
+	info: IFundingInfo;
+}
+
+export interface IFundTempChannel {
+	recipient_node_peer_id: string;
+	recipient_user_peer_id: string;
+	temporary_channel_id: string;
+	info: IFundingInfo;
 }

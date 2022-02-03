@@ -88,13 +88,20 @@ import {
 	IGetMyChannelsData,
 	IFundAssetResponse,
 	IConnectResponse,
+	ISendSignedHex101034,
+	IListening110035,
+	ISendSignedHex101134,
+	ICreateChannel,
+	IFundTempChannel,
 } from './types';
 import {
 	generateFundingAddress,
 	getNextOmniboltAddress,
 	getPrivateKey,
+	promiseTimeout,
 	signP2PKH,
 	signP2SH,
+	sleep,
 } from './utils';
 import { channelSigningData, defaultDataShape } from './shapes';
 import { isNode } from './utils/browser-or-node';
@@ -118,6 +125,7 @@ export default class ObdApi {
 		this.onClose = (): null => null;
 		this.onError = (): null => null;
 		this.data = { ...defaultDataShape };
+		this.pendingPeerResponses = {};
 		this.mnemonic = '';
 	}
 	isConnectedToOBD: boolean = false;
@@ -129,6 +137,7 @@ export default class ObdApi {
 	loginPhrase?: string;
 	mnemonic: string;
 	data: ISaveData;
+	pendingPeerResponses: {};
 	saveData: (data: ISaveData) => any;
 	listeners?: IListeners | {};
 	selectedNetwork: TAvailableNetworks;
@@ -244,6 +253,16 @@ export default class ObdApi {
 						const jsonData = JSON.parse(e.data);
 						this.getDataFromServer(jsonData);
 						if (this.onMessage) this.onMessage(jsonData);
+
+						try {
+							if (jsonData.type in this.pendingPeerResponses) {
+								if (jsonData?.result) {
+									this.pendingPeerResponses[jsonData.type](ok(jsonData.result));
+								} else {
+									this.pendingPeerResponses[jsonData.type](ok(jsonData));
+								}
+							}
+						} catch {}
 						/*
           Someone is attempting to open a channel with you
           */
@@ -325,10 +344,10 @@ export default class ObdApi {
 						if (jsonData.type == -100041) {
 							//Sent Add HTLC
 						}
-						this.logMsg(e);
+						this.logMsg('-100041', e);
 						resolve(ok(jsonData));
 					} catch (error) {
-						this.logMsg(error);
+						this.logMsg('ws.onmessage error', error);
 						if (this.onMessage) this.onMessage(error);
 						resolve(err(error));
 					}
@@ -336,7 +355,7 @@ export default class ObdApi {
 
 				this.ws.onerror = (e): void => {
 					// an error occurred
-					this.logMsg(e);
+					this.logMsg('onerror', e);
 					this.disconnect();
 					this.onError(e.message);
 					resolve(err(e.message));
@@ -344,7 +363,7 @@ export default class ObdApi {
 
 				this.ws.onclose = (e): void => {
 					// connection closed
-					this.logMsg('Closing Up!');
+					this.logMsg('onclose', 'Closing Up!');
 					this.disconnect();
 					this.onClose(e.code, e.reason);
 				};
@@ -368,11 +387,11 @@ export default class ObdApi {
 	 */
 	registerEvent(msgType: number, callback: Function): void {
 		if (callback == null) {
-			this.logMsg('callback function is null');
+			this.logMsg('registerEvent', 'callback function is null');
 			return;
 		}
 		if (msgType == null) {
-			callback('msgType is null');
+			callback('registerEvent', 'msgType is null');
 			return;
 		}
 		this.callbackMap[msgType] = callback;
@@ -384,7 +403,7 @@ export default class ObdApi {
 	 */
 	removeEvent(msgType: number): void {
 		this.callbackMap.delete(msgType);
-		this.logMsg('----------> removeEvent');
+		this.logMsg('removeEvent', '----------> removeEvent');
 	}
 
 	/**
@@ -395,17 +414,18 @@ export default class ObdApi {
 	 */
 	sendJsonData(msg: string, type: number, callback: Function): void {
 		if (!this.isConnectedToOBD) {
-			this.logMsg('please try to connect obd again');
+			this.logMsg('sendJsonData', 'Please try to connect to obd again');
 			return;
 		}
 
 		if (this.isNotString(msg)) {
-			this.logMsg('error request content.');
+			this.logMsg('sendJsonData', 'error request content.');
 			return;
 		}
 
 		this.logMsg(new Date(), '------send json msg------');
-		this.logMsg(msg);
+		const jsonMsg = JSON.parse(msg);
+		this.logMsg(jsonMsg.type, jsonMsg);
 
 		if (callback !== null) {
 			this.callbackMap[type] = callback;
@@ -422,7 +442,7 @@ export default class ObdApi {
 	 */
 	connectToServer(url: string, callback: Function, globalCallback: Function) {
 		if (this.isConnectedToOBD) {
-			this.logMsg('already connected');
+			this.logMsg('connectToServer', 'already connected');
 			if (callback) callback('already connected');
 			return;
 		}
@@ -437,9 +457,9 @@ export default class ObdApi {
 		try {
 			this.ws = new this.websocket(`ws://${this.defaultUrl}`);
 			this.ws.onopen = (e): void => {
-				this.logMsg(e);
+				this.logMsg('onopen', e);
 
-				this.logMsg('connect success');
+				this.logMsg('onopen', 'connect success');
 				if (callback !== null) {
 					callback('connect success');
 				}
@@ -447,7 +467,7 @@ export default class ObdApi {
 			};
 			this.ws.onmessage = (e): void => {
 				let jsonData = JSON.parse(e.data);
-				this.logMsg(jsonData);
+				this.logMsg(jsonData?.type, jsonData);
 				this.getDataFromServer(jsonData);
 			};
 
@@ -463,7 +483,7 @@ export default class ObdApi {
 				return err('ws error');
 			};
 		} catch (e) {
-			this.logMsg(e);
+			this.logMsg('connectToServer error', e);
 			return err(e);
 		}
 	}
@@ -486,7 +506,7 @@ export default class ObdApi {
 			new Date(),
 			'----------------------------send msg------------------------------',
 		);
-		this.logMsg(msg);
+		this.logMsg(msg?.type, msg);
 		if (callback !== null) {
 			this.callbackMap[msg.type] = callback;
 		}
@@ -494,36 +514,33 @@ export default class ObdApi {
 	}
 
 	getDataFromServer(jsonData: any): any {
-		this.logMsg(jsonData);
+		this.logMsg(jsonData?.type, jsonData);
 
 		if (this.globalCallback) this.globalCallback(jsonData);
 
 		let callback = this.callbackMap[jsonData.type];
 		if (jsonData.type == 0) return;
-
+		const data = jsonData?.result ? jsonData.result : jsonData;
 		if (jsonData.status == false) {
 			//omni error ,do not alert
 			if (jsonData.type == this.messageType.MsgType_Core_Omni_Getbalance_2112) {
 				try {
 					if (callback != null) return callback(err('Omni Error'));
 				} catch {
-					return err(jsonData);
+					return err(data);
 				}
 			}
 
 			if (jsonData.type !== this.messageType.MsgType_Error_0) {
-				this.logMsg(jsonData.result);
+				this.logMsg('messageType.MsgType_Error_0', data);
 			}
 
 			try {
-				if (callback != null) return callback(err(jsonData));
-			} catch {
-				return err(jsonData);
-			}
-			return err(jsonData);
+				if (callback != null) return callback(err(data));
+			} catch {}
+			return err(data);
 		}
 
-		let resultData = jsonData.result;
 		if (jsonData.type == this.messageType.MsgType_Error_0) {
 			let tempData: any = {};
 			tempData.type = jsonData.type;
@@ -541,9 +558,9 @@ export default class ObdApi {
 		// This message is Alice send to Bob
 		if (fromId !== toId) {
 			if (callback !== null) {
-				resultData['to_peer_id'] = toId;
+				data['to_peer_id'] = toId;
 				try {
-					return callback(ok(resultData));
+					return callback(ok(data));
 				} catch {
 					return err(jsonData);
 				}
@@ -552,7 +569,7 @@ export default class ObdApi {
 		}
 
 		// This message is send to myself
-		if (callback != null) callback(ok(resultData));
+		if (callback != null) callback(ok(data));
 
 		if (this.loginData.userPeerId === fromId) return;
 
@@ -717,17 +734,6 @@ export default class ObdApi {
 		msg.type = this.messageType.MsgType_p2p_ConnectPeer_2003;
 		return new Promise((resolve) => this.sendData(msg, resolve));
 	}
-
-	/**
-	 * MsgType_Core_GetNewAddress_2101
-	 * @param callback function
-	 */
-	//  getNewAddress(callback: Function) {
-	//   let msg = new Message();
-	//   msg.type = this.messageType.MsgType_Core_GetNewAddress_2101;
-	//   this.sendData(msg, callback);
-	// }
-	//  onGetNewAddressFromOmniCore(jsonData: any) {}
 
 	/**
 	 * MsgType_Core_FundingBTC_2109
@@ -949,11 +955,27 @@ export default class ObdApi {
 
 	onGetAddressInfo(jsonData: any): void {}
 
-	async createChannel(
-		recipient_node_peer_id: string,
-		recipient_user_peer_id: string,
-		fundingAddressIndex = 0,
-	): Promise<Result<IOpenChannel>> {
+	async createChannel({
+		remote_node_address,
+		recipient_user_peer_id,
+		info: {
+			fundingAddressIndex = 0,
+			amount_to_fund = 0.00009, // Amount to fund per funding round (3x per channel)
+			miner_fee = 0.000001, // Miner fee per funding round (3x per channel)
+			asset_id,
+			asset_amount,
+		},
+	}: ICreateChannel): Promise<Result<ISendSignedHex101134>> {
+		if (this.isNotString(remote_node_address)) {
+			return err('error remote_node_address');
+		}
+		const recipient_node_id_index = remote_node_address.lastIndexOf('/');
+		if (recipient_node_id_index === -1) {
+			return err('invalid remote_node_address');
+		}
+		const recipient_node_peer_id = remote_node_address.substring(
+			recipient_node_id_index + 1,
+		);
 		if (this.isNotString(recipient_node_peer_id)) {
 			return err('error recipient_node_peer_id');
 		}
@@ -962,6 +984,19 @@ export default class ObdApi {
 		}
 		if (!(fundingAddressIndex >= 0)) {
 			return err('error fundingAddressIndex');
+		}
+		if (!asset_id) return err('Please prove an asset_id.');
+		if (!asset_amount)
+			return err('Please provide an asset_amount that is greater than 0.');
+
+		/**
+		 * Attempt to connect to specified peer.
+		 * TODO: In addition to checking against our current node_peer_id, evaluate if we're already connected to any other given node_peer_id before attempting to connect
+		 */
+		if (this.loginData.nodePeerId !== recipient_node_peer_id) {
+			await this.connectPeer({
+				remote_node_address,
+			});
 		}
 		const fundingAddress = await this.getFundingAddress({
 			index: fundingAddressIndex,
@@ -980,8 +1015,14 @@ export default class ObdApi {
 			info,
 		);
 		if (openChannelResponse.isErr()) {
-			return err(openChannelResponse.error.message);
+			return err(openChannelResponse.error);
 		}
+
+		const channelAcceptResponse = await this.waitForPeer(-110033, 10000);
+		if (channelAcceptResponse.isErr()) {
+			return err(channelAcceptResponse.error.message);
+		}
+
 		const temporary_channel_id = openChannelResponse.value.temporary_channel_id;
 		const addressIndex = await this.getNewSigningAddress();
 		if (addressIndex.isErr()) {
@@ -991,25 +1032,159 @@ export default class ObdApi {
 			fundingAddress: fundingAddress.value,
 			addressIndex: addressIndex.value,
 		};
-		this.saveSigningData(temporary_channel_id, data);
-		return ok(openChannelResponse.value);
+		await this.saveSigningData(temporary_channel_id, data);
+
+		// Temporary hack to prevent errors when auto-creating channels.
+		await sleep(2000);
+
+		return await this.fundTempChannel({
+			recipient_node_peer_id,
+			recipient_user_peer_id,
+			temporary_channel_id,
+			info: {
+				fundingAddressIndex,
+				amount_to_fund,
+				miner_fee,
+				asset_id,
+				asset_amount,
+			},
+		});
 	}
+
+	/**
+	 * Used to await a peer response of the provided message type.
+	 * @param {string} methodType
+	 * @param {number} [timeout]
+	 */
+	waitForPeer<T>(methodType: number, timeout = 2000): Promise<Result<T>> {
+		return new Promise(async (resolve) => {
+			this.pendingPeerResponses[methodType] = resolve;
+			return await promiseTimeout(
+				timeout,
+				this.pendingPeerResponses[methodType],
+			);
+		});
+	}
+
+	/**
+	 * This method is used to fund Bitcoin three times when creating a channel.
+	 * @param {BtcFundingInfo} info
+	 * @param {string} temporary_channel_id
+	 * @param {string} recipient_node_peer_id
+	 * @param {string} recipient_user_peer_id
+	 * @param {string} privkey
+	 * @param {number} times_to_fund
+	 * @return {Promise<Result<string>>}
+	 */
+	fundLoop = async ({
+		info,
+		temporary_channel_id,
+		recipient_node_peer_id,
+		recipient_user_peer_id,
+		privkey,
+		times_to_fund,
+	}: {
+		info: BtcFundingInfo;
+		temporary_channel_id: string;
+		recipient_node_peer_id: string;
+		recipient_user_peer_id: string;
+		privkey: string;
+		times_to_fund: number;
+	}): Promise<Result<string>> => {
+		for (let i = 0; i < times_to_fund; i++) {
+			const fundingRes = await this.fundingBitcoin(info);
+			if (fundingRes.isErr()) {
+				return err(fundingRes.error);
+			}
+
+			const { hex: txhex, inputs } = fundingRes.value;
+
+			let signed_hex = signP2PKH({
+				txhex,
+				inputs,
+				privkey,
+				selectedNetwork: this.selectedNetwork,
+			});
+			this.saveSigningData(temporary_channel_id, { kTbTempData: signed_hex });
+
+			const fundingBitcoinCreatedInfo = new FundingBtcCreated();
+			fundingBitcoinCreatedInfo.temporary_channel_id = temporary_channel_id;
+			fundingBitcoinCreatedInfo.funding_tx_hex = signed_hex;
+			const fundingBitcoinCreatedResponse = await this.bitcoinFundingCreated(
+				recipient_node_peer_id,
+				recipient_user_peer_id,
+				fundingBitcoinCreatedInfo,
+			);
+			if (fundingBitcoinCreatedResponse.isErr()) {
+				return err(fundingBitcoinCreatedResponse.error.message);
+			}
+
+			if (fundingBitcoinCreatedResponse.value.hex) {
+				const signed_hex100341 = await signP2SH({
+					is_first_sign: true,
+					txhex: fundingBitcoinCreatedResponse.value.hex,
+					pubkey_1: fundingBitcoinCreatedResponse.value.pub_key_a,
+					pubkey_2: fundingBitcoinCreatedResponse.value.pub_key_b,
+					privkey,
+					inputs: fundingBitcoinCreatedResponse.value.inputs,
+					selectedNetwork: this.selectedNetwork,
+				});
+
+				const sendSignedHex100341Response = await this.sendSignedHex100341(
+					recipient_node_peer_id,
+					recipient_user_peer_id,
+					signed_hex100341,
+				);
+				if (sendSignedHex100341Response.isErr()) {
+					return err(sendSignedHex100341Response.error.message);
+				}
+
+				const waitForPeerResponse = await this.waitForPeer<ISendSignedHex100341>(
+					-110350,
+				);
+				try {
+					if (waitForPeerResponse.isErr()) {
+						return err(waitForPeerResponse.error.message);
+					}
+				} catch (e) {
+					return err(e);
+				}
+			}
+		}
+		return ok('Funded successfully.');
+	};
 
 	/**
 	 * Once a temp channel is established this method facilitates the funding of the specified channel.
 	 * @param temporary_channel_id
 	 * @param fundingAddressIndex
-	 * @param times_to_fund - Specify how many times to fund the given channel.
 	 * @param amount_to_fund - How much (in BTC) to fund per round.
 	 * @param miner_fee - How much to pay in fees (in BTC) per funding round.
+	 * @param asset_id
+	 * @param asset_amount
+	 * @param recipient_node_peer_id
+	 * @param recipient_user_peer_id
 	 */
-	async fundTempChannel(
-		temporary_channel_id: string,
-		fundingAddressIndex = 0,
-		times_to_fund = 3,
-		amount_to_fund = 0.00009,
-		miner_fee = 0.000001,
-	): Promise<Result<string>> {
+	async fundTempChannel({
+		recipient_node_peer_id,
+		recipient_user_peer_id,
+		temporary_channel_id,
+		info: {
+			fundingAddressIndex = 0,
+			amount_to_fund = 0.0001,
+			miner_fee = 0.000008,
+			asset_id = 137,
+			asset_amount = 0,
+		},
+	}: IFundTempChannel): Promise<Result<ISendSignedHex101134>> {
+		const fundingAddress = await this.getFundingAddress({
+			index: fundingAddressIndex,
+		});
+		if (fundingAddress.isErr()) {
+			return err(fundingAddress.error.message);
+		}
+		//TODO: Ensure the Omni asset balance of fundingAddress.value.address is greater than the asset_amount value before proceeding.
+
 		const channels = await this.getMyChannels();
 		if (channels.isErr()) {
 			return err(channels.error.message);
@@ -1023,41 +1198,140 @@ export default class ObdApi {
 			return err('Unable to locate provided channel.');
 		}
 		const tempChannel = tempChannelFilter[0];
-		const fundingAddress = await this.getFundingAddress({
-			index: fundingAddressIndex,
+		const timesToFund = Math.abs(3 - tempChannel.btc_funding_times);
+		//TODO: Ensure the Bitcoin balance of fundingAddress.value.address is greater than (amount_to_fund + miner_fee) * timesToFund before proceeding.
+
+		const fundingAddressPrivKey = await getPrivateKey({
+			addressData: fundingAddress.value,
+			selectedNetwork: this.selectedNetwork,
+			mnemonic: this.mnemonic,
 		});
-		if (fundingAddress.isErr()) {
-			return err(fundingAddress.error.message);
+		if (fundingAddressPrivKey.isErr()) {
+			return err(fundingAddressPrivKey.error.message);
 		}
+
 		let info = new BtcFundingInfo();
 		info.from_address = fundingAddress.value.address;
 		info.to_address = tempChannel.channel_address;
 		info.amount = amount_to_fund;
 		info.miner_fee = miner_fee;
-		for (let i = 0; i < times_to_fund; i++) {
-			const fundingRes = await this.fundingBitcoin(info);
-			if (fundingRes.isErr()) {
-				return err(fundingRes.error.message);
-			}
-			const fundingAddressPrivKey = await getPrivateKey({
-				addressData: fundingAddress.value,
-				selectedNetwork: this.selectedNetwork,
-				mnemonic: this.mnemonic,
-			});
-			if (fundingAddressPrivKey.isErr()) {
-				return err(fundingAddressPrivKey.error.message);
-			}
-			const { hex: txhex, inputs } = fundingRes.value;
-
-			let signed_hex = signP2PKH({
-				txhex,
-				inputs,
+		const [fundLoopResponse] = await Promise.all([
+			this.fundLoop({
+				info,
+				recipient_user_peer_id,
+				recipient_node_peer_id,
 				privkey: fundingAddressPrivKey.value,
-				selectedNetwork: this.selectedNetwork,
-			});
-			this.saveSigningData(temporary_channel_id, { kTbTempData: signed_hex });
+				times_to_fund: timesToFund,
+				temporary_channel_id,
+			}),
+		]);
+		if (fundLoopResponse.isErr()) {
+			return err(fundLoopResponse.error);
 		}
-		return ok('Successfully funded channel.');
+
+		const fundingAssetInfo = new OmniFundingAssetInfo();
+		fundingAssetInfo.from_address = fundingAddress.value.address;
+		fundingAssetInfo.to_address = tempChannel.channel_address;
+		fundingAssetInfo.property_id = asset_id;
+		fundingAssetInfo.amount = asset_amount;
+		fundingAssetInfo.miner_fee = miner_fee;
+
+		const fundingAssetResponse = await this.fundingAsset(fundingAssetInfo);
+		if (fundingAssetResponse.isErr())
+			return err(fundingAssetResponse.error.message);
+
+		const signed_hex = signP2PKH({
+			txhex: fundingAssetResponse.value.hex,
+			privkey: fundingAddressPrivKey.value,
+			inputs: fundingAssetResponse.value.inputs,
+			selectedNetwork: this.selectedNetwork,
+		});
+
+		this.saveSigningData(temporary_channel_id, { kTbTempData: signed_hex });
+
+		const assetFundingCreatedInfo = new AssetFundingCreatedInfo();
+		assetFundingCreatedInfo.temporary_channel_id = temporary_channel_id;
+		assetFundingCreatedInfo.funding_tx_hex = signed_hex;
+		assetFundingCreatedInfo.temp_address_pub_key =
+			fundingAddress.value.publicKey;
+		assetFundingCreatedInfo.temp_address_index = fundingAddress.value.index;
+		const assetFundingCreatedResponse = await this.assetFundingCreated(
+			recipient_node_peer_id,
+			recipient_user_peer_id,
+			assetFundingCreatedInfo,
+		);
+		if (assetFundingCreatedResponse.isErr()) {
+			return err(assetFundingCreatedResponse.error.message);
+		}
+
+		// Alice sign the tx on client
+		const signed_hex101034 = await signP2SH({
+			is_first_sign: true,
+			txhex: assetFundingCreatedResponse.value.hex,
+			pubkey_1: assetFundingCreatedResponse.value.pub_key_a,
+			pubkey_2: assetFundingCreatedResponse.value.pub_key_b,
+			privkey: fundingAddressPrivKey.value,
+			inputs: assetFundingCreatedResponse.value.inputs,
+			selectedNetwork: this.selectedNetwork,
+		});
+
+		const sendSignedHex101034Response = await this.sendSignedHex101034(
+			recipient_node_peer_id,
+			recipient_user_peer_id,
+			signed_hex101034,
+		);
+		if (sendSignedHex101034Response.isErr()) {
+			return err(sendSignedHex101034Response.error.message);
+		}
+
+		const waitFor110035Response = await this.waitForPeer<IListening110035>(
+			-110035,
+		);
+		if (waitFor110035Response.isErr()) {
+			return err(waitFor110035Response.error.message);
+		}
+
+		this.saveSigningData(temporary_channel_id, {
+			kTempPrivKey: fundingAddressPrivKey.value,
+		});
+
+		const signed_hex101134 = await signP2SH({
+			is_first_sign: true,
+			txhex: waitFor110035Response.value.hex,
+			pubkey_1: waitFor110035Response.value.pub_key_a,
+			pubkey_2: waitFor110035Response.value.pub_key_b,
+			privkey: fundingAddressPrivKey.value,
+			inputs: waitFor110035Response.value.inputs,
+			selectedNetwork: this.selectedNetwork,
+		});
+
+		let sendSignedHex101134Info = new SignedInfo101134();
+		sendSignedHex101134Info.channel_id = waitFor110035Response.value.channel_id;
+		sendSignedHex101134Info.rd_signed_hex = signed_hex101134;
+		const sendSignedHex101134Response = await this.sendSignedHex101134(
+			sendSignedHex101134Info,
+		);
+		if (sendSignedHex101134Response.isErr()) {
+			return err(sendSignedHex101134Response.error.message);
+		}
+
+		this.saveData(this.data);
+
+		//Channel successfully created.
+		//Replace old channel id with the new channel id.
+		delete Object.assign(this.data.signingData, {
+			[sendSignedHex101134Info.channel_id]: this.data.signingData[
+				temporary_channel_id
+			],
+		})[temporary_channel_id];
+
+		//Remove any pre-existing checkpoints.
+		this.clearOmniboltCheckpoint({ channelId: temporary_channel_id });
+
+		//Wrap up and save data.
+		this.saveData(this.data);
+
+		return sendSignedHex101134Response;
 	}
 
 	/**
@@ -1248,7 +1522,7 @@ export default class ObdApi {
 	}
 
 	/**
-	 * Listening 110033
+	 * Listening 110033 "listening110033"
 	 * @param {TOnAcceptChannel} data
 	 * @return Promise<void>
 	 */
@@ -1323,6 +1597,73 @@ export default class ObdApi {
 		} catch (e) {
 			return this.listener(listenerId, 'failure', e);
 		}
+	}
+
+	/**
+	 * auto response to -100340 (bitcoinFundingCreated)
+	 * listening to -110340 and send -100350 bitcoinFundingSigned
+	 * @param e
+	 */
+	async listening110340(
+		e,
+	): Promise<
+		Result<{
+			nodeID: string;
+			userID: string;
+			info350: FundingBtcSigned;
+			privkey: string;
+		}>
+	> {
+		const selectedNetwork = this.selectedNetwork;
+		//let myUserID   = e.to_peer_id;
+		let channel_id = e.temporary_channel_id;
+		const signingData = this.data.signingData[channel_id];
+		const fundingAddress = signingData.fundingAddress;
+		const privkeyResponse = await getPrivateKey({
+			addressData: fundingAddress,
+			selectedNetwork,
+			mnemonic: this.mnemonic,
+		});
+		if (privkeyResponse.isErr()) return err(privkeyResponse.error.message);
+		const privkey = privkeyResponse.value;
+		let data = e.sign_data;
+		const signed_hex = await signP2SH({
+			is_first_sign: false,
+			txhex: data.hex,
+			pubkey_1: data.pub_key_a,
+			pubkey_2: data.pub_key_b,
+			privkey,
+			inputs: data.inputs,
+			selectedNetwork,
+		});
+		//Save signing data if successful.
+		this.data.signingData[channel_id] = {
+			...this.data.signingData[channel_id],
+			kTbSignedHex: signed_hex,
+		};
+
+		this.saveSigningData(channel_id, { funding_txid: e.funding_txid });
+
+		let nodeID = e.funder_node_address;
+		let userID = e.funder_peer_id;
+
+		// will send -100350 bitcoinFundingSigned
+		let info = new FundingBtcSigned();
+		info.temporary_channel_id = channel_id;
+		info.funding_txid = e.funding_txid;
+		info.signed_miner_redeem_transaction_hex = signed_hex;
+		info.approval = true;
+
+		await this.bitcoinFundingSigned(nodeID, userID, info);
+
+		let returnData = {
+			nodeID: nodeID,
+			userID: userID,
+			info350: info,
+			privkey: privkey,
+		};
+
+		return ok(returnData);
 	}
 
 	/**
@@ -2094,7 +2435,7 @@ export default class ObdApi {
 		recipient_node_peer_id: string,
 		recipient_user_peer_id: string,
 		signed_hex: string,
-	): Promise<Result<any>> {
+	): Promise<Result<ISendSignedHex101034>> {
 		if (this.isNotString(recipient_node_peer_id)) {
 			return err('error recipient_node_peer_id');
 		}
@@ -2114,8 +2455,11 @@ export default class ObdApi {
 	/**
 	 * MsgType_ClientSign_AssetFunding_AliceSignRD_1134
 	 * @param {SignedInfo101134} info
+	 * @return {ISendSignedHex101134}
 	 */
-	async sendSignedHex101134(info: SignedInfo101134): Promise<Result<any>> {
+	async sendSignedHex101134(
+		info: SignedInfo101134,
+	): Promise<Result<ISendSignedHex101134>> {
 		if (this.isNotString(info.channel_id)) {
 			return err('empty channel_id');
 		}
@@ -3471,7 +3815,7 @@ export default class ObdApi {
 		page_index?: Number,
 	): Promise<Result<IGetMyChannels>> {
 		if (page_size == null || page_size <= 0) {
-			page_size = 10;
+			page_size = 100;
 		}
 
 		if (page_index == null || page_index <= 0) {
@@ -3881,7 +4225,7 @@ export default class ObdApi {
 			let cr = e.counterparty_raw_data;
 			let inputs = cr.inputs;
 
-			this.logMsg('START = ' + new Date().getTime());
+			this.logMsg('sendOmniAsset', 'START = ' + new Date().getTime());
 			const fundingData = signingData.fundingAddress;
 			const fundingPrivKey = await getPrivateKey({
 				addressData: fundingData,
@@ -3892,7 +4236,7 @@ export default class ObdApi {
 				return err(fundingPrivKey.error.message);
 			}
 			let privkey = fundingPrivKey.value;
-			this.logMsg('END READ DB = ' + new Date().getTime());
+			this.logMsg('sendOmniAsset', 'END READ DB = ' + new Date().getTime());
 
 			let cr_hex = await signP2SH({
 				is_first_sign: true,
@@ -3904,7 +4248,7 @@ export default class ObdApi {
 				selectedNetwork,
 			});
 
-			this.logMsg('END SIGN = ' + new Date().getTime());
+			this.logMsg('sendOmniAsset', 'END SIGN = ' + new Date().getTime());
 
 			// NO.2 rsmc_raw_data
 			let rr = e.rsmc_raw_data;
@@ -4004,7 +4348,7 @@ export default class ObdApi {
 			};
 			if (save) this.saveData(this.data);
 		} catch (e) {
-			this.logMsg(e);
+			this.logMsg('updateOmniboltCheckpoint error', e);
 		}
 	}
 
@@ -4019,7 +4363,7 @@ export default class ObdApi {
 				delete this.data.checkpoints[channelId];
 			}
 		} catch (e) {
-			this.logMsg(e);
+			this.logMsg('clearOmniboltCheckpoint', e);
 		}
 	}
 

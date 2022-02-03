@@ -4,7 +4,13 @@
  * @param {TAvailableNetworks} [selectedNetwork]
  */
 import { err, ok, Result } from "../result";
-import { IAddressContent, IGetAddress, ISignP2PKH, ISignP2SH, TAvailableNetworks } from "../types";
+import {
+	IAddressContent,
+	IGetAddress,
+	ISignP2PKH,
+	ISignP2SH,
+	TAvailableNetworks
+} from '../types';
 import { INetwork, networks } from './networks';
 
 const bitcoin = require('bitcoinjs-lib');
@@ -304,4 +310,37 @@ export const accMul = (arg1, arg2): number => {
 		(Number(s1.replace('.', '')) * Number(s2.replace('.', ''))) /
     Math.pow(10, m)
 	);
+};
+
+/**
+ * Used to timeout a request after a specified period of time.
+ * @param {number} ms
+ * @param {Promise<any>} promise
+ * @return {Promise<any>}
+ */
+export const promiseTimeout = (
+	ms: number,
+	promise: Promise<any>,
+): Promise<any> => {
+	let id;
+	let timeout = new Promise((resolve) => {
+		id = setTimeout(() => {
+			resolve(err('Timed Out.'));
+		}, ms);
+	});
+	return Promise.race([promise, timeout]).then((result) => {
+		clearTimeout(id);
+		try {
+			if (result?.isErr()) {
+				return err(result?.error?.message);
+			}
+		} catch (e) {
+			return err(e);
+		}
+		return result;
+	});
+};
+
+export const sleep = (ms = 1000): Promise<void> => {
+	return new Promise((resolve) => setTimeout(resolve, ms));
 };
