@@ -91,6 +91,8 @@ import {
 	ISendSignedHex101034,
 	IListening110035,
 	ISendSignedHex101134,
+	ICreateChannel,
+	IFundTempChannel,
 } from './types';
 import {
 	generateFundingAddress,
@@ -518,30 +520,27 @@ export default class ObdApi {
 
 		let callback = this.callbackMap[jsonData.type];
 		if (jsonData.type == 0) return;
-
+		const data = jsonData?.result ? jsonData.result : jsonData;
 		if (jsonData.status == false) {
 			//omni error ,do not alert
 			if (jsonData.type == this.messageType.MsgType_Core_Omni_Getbalance_2112) {
 				try {
 					if (callback != null) return callback(err('Omni Error'));
 				} catch {
-					return err(jsonData);
+					return err(data);
 				}
 			}
 
 			if (jsonData.type !== this.messageType.MsgType_Error_0) {
-				this.logMsg('messageType.MsgType_Error_0', jsonData.result);
+				this.logMsg('messageType.MsgType_Error_0', data);
 			}
 
 			try {
-				if (callback != null) return callback(err(jsonData));
-			} catch {
-				return err(jsonData);
-			}
-			return err(jsonData);
+				if (callback != null) return callback(err(data));
+			} catch {}
+			return err(data);
 		}
 
-		let resultData = jsonData.result;
 		if (jsonData.type == this.messageType.MsgType_Error_0) {
 			let tempData: any = {};
 			tempData.type = jsonData.type;
@@ -559,9 +558,9 @@ export default class ObdApi {
 		// This message is Alice send to Bob
 		if (fromId !== toId) {
 			if (callback !== null) {
-				resultData['to_peer_id'] = toId;
+				data['to_peer_id'] = toId;
 				try {
-					return callback(ok(resultData));
+					return callback(ok(data));
 				} catch {
 					return err(jsonData);
 				}
@@ -570,7 +569,7 @@ export default class ObdApi {
 		}
 
 		// This message is send to myself
-		if (callback != null) callback(ok(resultData));
+		if (callback != null) callback(ok(data));
 
 		if (this.loginData.userPeerId === fromId) return;
 
@@ -956,15 +955,27 @@ export default class ObdApi {
 
 	onGetAddressInfo(jsonData: any): void {}
 
-	async createChannel(
-		recipient_node_peer_id: string,
-		recipient_user_peer_id: string,
-		fundingAddressIndex = 0,
-		amount_to_fund = 0.00009,
-		miner_fee = 0.000001,
-		asset_id,
-		asset_amount = 0,
-	): Promise<Result<ISendSignedHex101134>> {
+	async createChannel({
+		remote_node_address,
+		recipient_user_peer_id,
+		info: {
+			fundingAddressIndex = 0,
+			amount_to_fund = 0.00009, // Amount to fund per funding round (3x per channel)
+			miner_fee = 0.000001, // Miner fee per funding round (3x per channel)
+			asset_id,
+			asset_amount,
+		},
+	}: ICreateChannel): Promise<Result<ISendSignedHex101134>> {
+		if (this.isNotString(remote_node_address)) {
+			return err('error remote_node_address');
+		}
+		const recipient_node_id_index = remote_node_address.lastIndexOf('/');
+		if (recipient_node_id_index === -1) {
+			return err('invalid remote_node_address');
+		}
+		const recipient_node_peer_id = remote_node_address.substring(
+			recipient_node_id_index + 1,
+		);
 		if (this.isNotString(recipient_node_peer_id)) {
 			return err('error recipient_node_peer_id');
 		}
@@ -978,6 +989,15 @@ export default class ObdApi {
 		if (!asset_amount)
 			return err('Please provide an asset_amount that is greater than 0.');
 
+		/**
+		 * Attempt to connect to specified peer.
+		 * TODO: In addition to checking against our current node_peer_id, evaluate if we're already connected to any other given node_peer_id before attempting to connect
+		 */
+		if (this.loginData.nodePeerId !== recipient_node_peer_id) {
+			await this.connectPeer({
+				remote_node_address,
+			});
+		}
 		const fundingAddress = await this.getFundingAddress({
 			index: fundingAddressIndex,
 		});
@@ -1017,16 +1037,18 @@ export default class ObdApi {
 		// Temporary hack to prevent errors when auto-creating channels.
 		await sleep(2000);
 
-		return await this.fundTempChannel(
-			temporary_channel_id,
-			fundingAddressIndex,
-			amount_to_fund,
-			miner_fee,
-			asset_id,
-			asset_amount,
+		return await this.fundTempChannel({
 			recipient_node_peer_id,
 			recipient_user_peer_id,
-		);
+			temporary_channel_id,
+			info: {
+				fundingAddressIndex,
+				amount_to_fund,
+				miner_fee,
+				asset_id,
+				asset_amount,
+			},
+		});
 	}
 
 	/**
@@ -1143,16 +1165,18 @@ export default class ObdApi {
 	 * @param recipient_node_peer_id
 	 * @param recipient_user_peer_id
 	 */
-	async fundTempChannel(
-		temporary_channel_id: string,
-		fundingAddressIndex = 0,
-		amount_to_fund = 0.00009,
-		miner_fee = 0.000001,
-		asset_id = 137,
-		asset_amount = 0,
+	async fundTempChannel({
 		recipient_node_peer_id,
 		recipient_user_peer_id,
-	): Promise<Result<ISendSignedHex101134>> {
+		temporary_channel_id,
+		info: {
+			fundingAddressIndex = 0,
+			amount_to_fund = 0.0001,
+			miner_fee = 0.000008,
+			asset_id = 137,
+			asset_amount = 0,
+		},
+	}: IFundTempChannel): Promise<Result<ISendSignedHex101134>> {
 		const fundingAddress = await this.getFundingAddress({
 			index: fundingAddressIndex,
 		});
