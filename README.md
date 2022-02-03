@@ -95,29 +95,31 @@ This is the address used to fund a given channel with Bitcoin and Omni assets.
 const fundingAddress = await obdapi.getFundingAddress({ index: 0 });
 ```
 
-##### Open Channel
-```
-// We first need to connect to a peer.
-const connectPeerResponse: Result<string> = await obdapi.connectPeer({remote_node_address});
-if (connectPeerResponse.isErr()) {
-    console.log(`Unable to connect to ${remote_node_address}.`);
-    return;
-}
+##### Create Channel
+There are three pre-requisites to successfully create, fund and open an omnibolt channel:
+  1. The peer you're attempting to open a channel with must be online.
+  2. The funding address must have a sufficient Bitcoin balance in order to cover the fees for channel opening (amount_to_fund + miner_fee) * 3.
+  3. The funding address must have a balance of the specified omni asset (`asset_id`) greater than the amount you intend to create a channel with (`asset_amount`).
 
-// Once connected we can initiate a channel open.
-const info: OpenChannelInfo = {
-    funding_pubkey,
-    is_private,
-};
-obdapi.openChannel(
-    recipient_node_peer_id,
+In the following example, we're assuming that the `fundingAddressIndex` of 0 has a Bitcoin balance greater than (0.0001 + 0.00005) * 3 and an omni asset balance >= 5.
+```
+const createChannelResponse = await obdapi.createChannel({
+    remote_node_address,
     recipient_user_peer_id,
-    info,
-);
+    info: {
+        fundingAddressIndex: 0,
+        asset_id: 137,
+        asset_amount: 5,
+        amount_to_fund: 0.0001,
+        miner_fee: 0.00005,
+    },
+});
+if (createChannelResponse.isErr()) {
+    console.log(createChannelResponse.error.message);
+} else {
+    console.log(createChannelResponse.value);    
+}
 ```
-
-##### Fund Channel
- - TODO
 
 ##### Get Omnibolt Channels
 ```
