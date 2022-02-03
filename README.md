@@ -3,9 +3,9 @@
 ## ⚠️ Warning
 This is pre-alpha software and only intended for use on Bitcoin Testnet. Please use at your own risk. Expect breaking changes.
 
-- [⚙️ Installation](#---installation)
-- [⚡️ Setup & Connect](#---setup---connect)
-- [🧰 Methods](#---methods)
+- [⚙️ Installation](#%EF%B8%8F-installation)
+- [⚡️ Setup & Connect](#%EF%B8%8F-setup--connect)
+- [🧰 Methods](#-methods)
     * [Get Connection Info (obdapi.getInfo)](#get-connection-info)
     * [Get Funding Address (obdapi.getFundingAddress)](#get-funding-address)
     * [Create Channel (obdapi.createChannel)](#create-channel)
@@ -13,9 +13,9 @@ This is pre-alpha software and only intended for use on Bitcoin Testnet. Please 
     * [Send Asset (obdapi.sendOmniAsset)](#send-asset)
     * [Close Channel (obdapi.closeChannel)](#close-channel)
     * [Get Asset Info By ID (obdapi.getProperty)](#get-asset-info-by-id)
-- [📖 API Documentation](#---api-documentation)
-- [🤖 Debugging Tool](#---debugging-tool)
-- [📝️ License [MIT]](#----license--mit--https---githubcom-synonymdev-omnibolt-js-blob-master-license-)
+- [📖 API Documentation](#-api-documentation)
+- [🤖 Debugging Tool](#-debugging-tool)
+- [📝️ License [MIT]](#%EF%B8%8F-license-mit)
 
 
 ## ⚙️ Installation
