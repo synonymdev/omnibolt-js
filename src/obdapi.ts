@@ -96,6 +96,7 @@ import {
 } from './types';
 import {
 	generateFundingAddress,
+	generateOmniboltUri,
 	getNextOmniboltAddress,
 	getPrivateKey,
 	promiseTimeout,
@@ -4466,5 +4467,25 @@ export default class ObdApi {
 			return err(fundingAddress.error.message);
 		}
 		return ok(fundingAddress.value);
+	}
+
+	/**
+	 * This method returns the information necessary for others to connect and open channels to you.
+	 */
+	getConnectUri(): Result<string> {
+		if (!this.isLoggedIn) {
+			return err('Please login first.');
+		}
+		const action = 'connect';
+		const { nodeAddress, userPeerId } = this.loginData;
+		const data = {
+			remote_node_address: nodeAddress,
+			recipient_user_peer_id: userPeerId,
+		};
+		const response = generateOmniboltUri({ action, data });
+		if (response.isErr()) {
+			return err(response.error.message);
+		}
+		return ok(response.value);
 	}
 }

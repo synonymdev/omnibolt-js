@@ -870,9 +870,12 @@ export interface IFundingInfo {
 	asset_amount: number;
 }
 
-export interface ICreateChannel {
+export interface IConnectUri {
 	remote_node_address: string;
 	recipient_user_peer_id: string;
+}
+
+export interface ICreateChannel extends IConnectUri {
 	info: IFundingInfo;
 }
 
@@ -881,4 +884,18 @@ export interface IFundTempChannel {
 	recipient_user_peer_id: string;
 	temporary_channel_id: string;
 	info: IFundingInfo;
+}
+
+export interface IParseOmniboltUriResponse {
+	action: string;
+	data: {
+		remote_node_address?: string;
+		recipient_user_peer_id?: string;
+		[key: string]: any;
+	};
+}
+
+export interface IGenerateOmniboltUri {
+	action: string;
+	data: string | object;
 }

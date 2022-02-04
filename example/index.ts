@@ -3,6 +3,7 @@ import { defaultDataShape } from '../src/shapes';
 import storage from 'node-persist';
 import WebSocket from 'ws';
 import { ISaveData } from '../lib/types/types';
+import { parseOmniboltUri } from '../src/utils';
 
 storage.init().then(async (): Promise<void> => {
 	// This is the passphrase used to login to the omnibolt server.
@@ -93,4 +94,18 @@ storage.init().then(async (): Promise<void> => {
 		return;
 	}
 	console.log('assetInfoResponse', assetInfoResponse.value);
+	console.log('\n');
+
+	const getConnectUriResponse = obdapi.getConnectUri();
+	if (getConnectUriResponse.isErr()) {
+		console.log('getConnectStringResponse error', getConnectUriResponse.error.message);
+		return;
+	}
+	console.log('getConnectStringResponse', getConnectUriResponse.value);
+	console.log('\n');
+
+	const parseOmniboltUriResponse = parseOmniboltUri(getConnectUriResponse.value);
+	if (parseOmniboltUriResponse.isOk()) {
+		console.log('parseOmniboltUriResponse', parseOmniboltUriResponse.value);
+	}
 });
