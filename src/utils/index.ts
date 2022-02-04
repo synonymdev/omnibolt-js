@@ -3,10 +3,12 @@
  * @param {string} [selectedWallet]
  * @param {TAvailableNetworks} [selectedNetwork]
  */
-import { err, ok, Result } from "../result";
+import { err, ok, Result } from '../result';
 import {
 	IAddressContent,
+	IGenerateOmniboltUri,
 	IGetAddress,
+	IParseOmniboltUriResponse,
 	ISignP2PKH,
 	ISignP2SH,
 	TAvailableNetworks
@@ -343,4 +345,48 @@ export const promiseTimeout = (
 
 export const sleep = (ms = 1000): Promise<void> => {
 	return new Promise((resolve) => setTimeout(resolve, ms));
+};
+
+/**
+ * Parses an omnibolt uri, returning the specified action and data provided.
+ * Example: omnibolt:connect:{"remote_node_address":"nodeAddress","recipient_user_peer_id":"userId"}
+ * @param {string} uri
+ */
+export const parseOmniboltUri = (uri: string): Result<IParseOmniboltUriResponse> => {
+	try {
+		if (!uri) {
+			return err('No URI provided.');
+		}
+		let action;
+		const isOmniboltUri = uri.substr(0,9) === 'omnibolt:';
+		if (!isOmniboltUri) return err('This is not an omnibolt uri.');
+		uri = uri.substr(9, uri.length);
+		const actionIndex = uri.indexOf(':');
+		action = uri.substr(0, actionIndex);
+		const data = JSON.parse(uri.substr(actionIndex+1, uri.length));
+		return ok({
+			action,
+			data,
+		});
+	} catch (e) {
+		return err(e);
+	}
+};
+
+/**
+ * Generates an omnibolt uri where specific omnibolt actions and data can be specified for easier sharing.
+ * @param {string} action
+ * @param {string|object} data
+ * @return {Result<string>}
+ */
+export const generateOmniboltUri = ({ action, data }: IGenerateOmniboltUri): Result<string> => {
+	try {
+		if (!action || !data) return err('Unable to generate omnibolt uri.');
+		if (typeof data !== 'string') {
+			data = JSON.stringify(data);
+		}
+		return ok(`omnibolt:${action}:${data}`);
+	} catch (e) {
+		return err(e);
+	}
 };
