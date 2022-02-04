@@ -242,4 +242,5 @@ export default class ObdApi {
     getFundingAddressByIndex({ index, }: {
         index: number;
     }): Promise<Result<IAddressContent>>;
+    getConnectUri(): Result<string>;
 }

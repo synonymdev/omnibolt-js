@@ -895,4 +895,7 @@ export interface IParseOmniboltUriResponse {
 	};
 }
 
-export interface IGenerateOmniboltUri { action: string; data: string | object }
+export interface IGenerateOmniboltUri {
+	action: string;
+	data: string | object;
+}

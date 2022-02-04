@@ -4478,7 +4478,10 @@ export default class ObdApi {
 		}
 		const action = 'connect';
 		const { nodeAddress, userPeerId } = this.loginData;
-		const data = { remote_node_address: nodeAddress, recipient_user_peer_id: userPeerId };
+		const data = {
+			remote_node_address: nodeAddress,
+			recipient_user_peer_id: userPeerId,
+		};
 		const response = generateOmniboltUri({ action, data });
 		if (response.isErr()) {
 			return err(response.error.message);

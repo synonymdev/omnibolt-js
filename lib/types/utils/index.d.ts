@@ -1,5 +1,5 @@
-import { Result } from "../result";
-import { IAddressContent, IGetAddress, ISignP2PKH, ISignP2SH, TAvailableNetworks } from '../types';
+import { Result } from '../result';
+import { IAddressContent, IGenerateOmniboltUri, IGetAddress, IParseOmniboltUriResponse, ISignP2PKH, ISignP2SH, TAvailableNetworks } from '../types';
 import { INetwork } from './networks';
 export declare const getNextOmniboltAddress: ({ selectedNetwork, addressIndex, mnemonic, }: {
     selectedNetwork: TAvailableNetworks;
@@ -23,3 +23,5 @@ export declare const signP2SH: ({ is_first_sign, txhex, pubkey_1, pubkey_2, priv
 export declare const accMul: (arg1: any, arg2: any) => number;
 export declare const promiseTimeout: (ms: number, promise: Promise<any>) => Promise<any>;
 export declare const sleep: (ms?: number) => Promise<void>;
+export declare const parseOmniboltUri: (uri: string) => Result<IParseOmniboltUriResponse>;
+export declare const generateOmniboltUri: ({ action, data }: IGenerateOmniboltUri) => Result<string>;
