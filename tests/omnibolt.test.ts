@@ -48,6 +48,14 @@ describe('omnibolt-js Library', () => {
 		expect(response).to.deep.equal(connectionInfo);
 	});
 
+	it('Should return connect uri string.' , async () => {
+		const response = await obdapi.getConnectUri();
+		expect(response.isOk()).to.equal(true);
+		if (response.isErr()) return;
+		const connectUriData = JSON.stringify({ remote_node_address: obdapi.loginData.nodeAddress, recipient_user_peer_id: obdapi.loginData.userPeerId });
+		expect(response.value).to.deep.equal(`omnibolt:connect:${connectUriData}`);
+	});
+
 	const getFundingAddressTest = async (index): Promise<void> => {
 		const response = await obdapi.getFundingAddress({ index });
 		expect(response.isOk()).to.equal(true);
