@@ -9,7 +9,7 @@ This is pre-alpha software and only intended for use on Bitcoin Testnet. Please 
     * [Get Connection Info (obdapi.getInfo)](#get-connection-info)
     * [Get Funding Address (obdapi.getFundingAddress)](#get-funding-address)
     * [Get Connect URI (obdapi.getConnectUri)](#get-connect-uri)
-    * [Parse Connect String (parseConnectString)](#parse-connect-uri)
+    * [Parse Connect URI (parseOmniboltUri)](#parse-connect-uri)
     * [Create Channel (obdapi.createChannel)](#create-channel)
     * [Get Omnibolt Channels (obdapi.getMyChannels)](#get-omnibolt-channels)
     * [Send Asset (obdapi.sendOmniAsset)](#send-asset)
