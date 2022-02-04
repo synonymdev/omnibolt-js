@@ -9,6 +9,12 @@ export const nodeAddress = '/ip4/62.234.216.108/tcp/4001/p2p/QmaYAYp4MzkncRUvZgw
 export const nodePeerId = 'QmaYAYp4MzkncRUvZgwDc4DLDbKfWftftoUiZSjnRz2ABy';
 export const propertyId = '137';
 
+export const omniboltConnectUri = {
+	action: 'connect',
+	data: '{"remote_node_address":"/ip4/62.234.216.108/tcp/4001/p2p/QmaYAYp4MzkncRUvZgwDc4DLDbKfWftftoUiZSjnRz2ABy","recipient_user_peer_id":"6a3cff12cb9d7a18333900ca0e5fe4dcf3e7414e184db6e8cf980203b1dfe44e"}',
+};
+export const omniboltConnectString = `omnibolt:${omniboltConnectUri.action}:${omniboltConnectUri.data}`;
+
 export const saveData = async (): Promise<void> => {};
 export const data = defaultDataShape;
 
