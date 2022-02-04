@@ -894,3 +894,5 @@ export interface IParseOmniboltUriResponse {
 		[key: string]: any;
 	};
 }
+
+export interface IGenerateOmniboltUri { action: string; data: string | object }
