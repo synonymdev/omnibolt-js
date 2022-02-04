@@ -8,6 +8,8 @@ This is pre-alpha software and only intended for use on Bitcoin Testnet. Please 
 - [🧰 Methods](#-methods)
     * [Get Connection Info (obdapi.getInfo)](#get-connection-info)
     * [Get Funding Address (obdapi.getFundingAddress)](#get-funding-address)
+    * [Get Connect URI (obdapi.getConnectUri)](#get-connect-uri)
+    * [Parse Connect String (parseConnectString)](#parse-connect-uri)
     * [Create Channel (obdapi.createChannel)](#create-channel)
     * [Get Omnibolt Channels (obdapi.getMyChannels)](#get-omnibolt-channels)
     * [Send Asset (obdapi.sendOmniAsset)](#send-asset)
@@ -33,6 +35,8 @@ npm i -S https://github.com/synonymdev/omnibolt-js.git
 ```
 import { ObdApi } from "omnibolt-js";
 import { defaultDataShape } from "omnibolt-js/lib/shapes.js";
+import { parseOmniboltUri } from "omnibolt-js/src/utils";
+
 import storage from 'node-persist';
 import WebSocket from 'ws';
 
@@ -108,6 +112,29 @@ const info = obdapi.getInfo();
 This is the address used to fund a given channel with Bitcoin and Omni assets.
 ```
 const fundingAddress = await obdapi.getFundingAddress({ index: 0 });
+```
+
+##### Get Connect URI
+This method returns a string that provides the information necessary for others to connect and open channels to you.
+```
+const connectUri = obdapi.getConnectUri();
+if (connectUri.isErr()) {
+    console.log(connectUri.error.message);
+    return;
+}
+console.log(connectUri.value);
+```
+
+##### Parse Connect URI
+This helper method parses a provided omnibolt uri. In this case, we're parsing the connect uri string where it will provide us with the given action ("connect") along with the embedded data that's expected with a connect action ("remote_node_address" & "recipient_user_peer_id").
+```
+const parsedConnectUri = parseOmniboltUri(connectUri);
+if (parsedConnectUri.isErr()) {
+    console.log(parsedConnectUri.error.message);
+    return;
+}
+const { action } = parsedConnectUri.value;  
+const { remote_node_address, recipient_user_peer_id } = parsedConnectUri.value.data;  
 ```
 
 ##### Create Channel
