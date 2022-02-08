@@ -93,6 +93,8 @@ import {
 	ISendSignedHex101134,
 	ICreateChannel,
 	IFundTempChannel,
+	IGetTransactionResponse,
+	IGetAllBalancesForAddressResponse,
 } from './types';
 import {
 	generateFundingAddress,
@@ -3508,7 +3510,7 @@ export default class ObdApi {
 	 * MsgType_Core_Omni_GetTransaction_2118
 	 * @param txid string
 	 */
-	async getTransaction(txid: string): Promise<Result<any>> {
+	async getTransaction(txid: string): Promise<Result<IGetTransactionResponse>> {
 		if (this.isNotString(txid)) {
 			return err('empty txid');
 		}
@@ -3635,7 +3637,9 @@ export default class ObdApi {
 	 * MsgType_Core_Omni_Getbalance_2112
 	 * @param address string
 	 */
-	async getAllBalancesForAddress(address: string): Promise<Result<any>> {
+	async getAllBalancesForAddress(
+		address: string,
+	): Promise<Result<IGetAllBalancesForAddressResponse[]>> {
 		if (this.isNotString(address)) {
 			return err('empty address');
 		}
