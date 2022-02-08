@@ -6,7 +6,9 @@ import {
 	channelInfo,
 	connectionInfo,
 	data,
+	fundingAddressBalanceInfo,
 	fundingAddresses,
+	getTransactionResponse,
 	loginPhrase,
 	mnemonic,
 	nodeAddress,
@@ -86,5 +88,19 @@ describe('omnibolt-js Library', () => {
 		expect(response.isOk()).to.equal(true);
 		if (response.isErr()) return;
 		expect(response.value).to.deep.equal(assetInformation);
+	});
+
+	it('Should return funding address balance information' , async () => {
+		let response = await obdapi.getAllBalancesForAddress(fundingAddresses[0].address);
+		expect(response.isOk()).to.equal(true);
+		if (response.isErr()) return;
+		expect(response.value).to.deep.equal(fundingAddressBalanceInfo);
+	});
+
+	it('Should return transaction information' , async () => {
+		let response = await obdapi.getTransaction(assetInformation.creationtxid);
+		expect(response.isOk()).to.equal(true);
+		if (response.isErr()) return;
+		expect(response.value).to.deep.equal(getTransactionResponse);
 	});
 });

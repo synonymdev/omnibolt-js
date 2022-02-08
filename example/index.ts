@@ -105,7 +105,26 @@ storage.init().then(async (): Promise<void> => {
 	console.log('\n');
 
 	const parseOmniboltUriResponse = parseOmniboltUri(getConnectUriResponse.value);
-	if (parseOmniboltUriResponse.isOk()) {
-		console.log('parseOmniboltUriResponse', parseOmniboltUriResponse.value);
+	if (parseOmniboltUriResponse.isErr()) {
+		console.log('parseOmniboltUriResponse error', parseOmniboltUriResponse.error.message);
+		return;
 	}
+	console.log('parseOmniboltUriResponse', parseOmniboltUriResponse.value);
+	console.log('\n');
+
+	const getAllBalancesForAddressResponse = await obdapi.getAllBalancesForAddress(fundingAddress.value.address);
+	if (getAllBalancesForAddressResponse.isErr()) {
+		console.log('getAllBalancesForAddressResponse error', getAllBalancesForAddressResponse.error.message);
+		return;
+	}
+	console.log('getAllBalancesForAddressResponse', getAllBalancesForAddressResponse.value);
+	console.log('\n');
+
+	const getTransactionResponse = await obdapi.getTransaction('a04a7a285e636ebf013ceec94748ee9dbe8d3d72f64a53cc12fcbc36d45fce2f');
+	if (getTransactionResponse.isErr()) {
+		console.log('getTransactionResponse error', getTransactionResponse.error.message);
+		return;
+	}
+	console.log('getTransactionResponse', getTransactionResponse.value);
+	console.log('\n');
 });

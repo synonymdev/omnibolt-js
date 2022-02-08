@@ -73,3 +73,39 @@ export const assetInformation = {
 	totaltokens: '10000000000.00000000',
 	url: ''
 };
+
+export const fundingAddressBalanceInfo = [
+	{
+		balance: '65.00000000',
+		frozen: '0.00000000',
+		name: 'OBD-1',
+		propertyid: 137,
+		reserved: '0.00000000'
+	}
+];
+
+export const getTransactionResponse = {
+	amount: '10000000000.00000000',
+	block: 1746496,
+	blockhash: '00000000c475a61b682018a9d7b7d64ab58c6e46be865eedb00e8ad6d91ed6a8',
+	blocktime: 1590400679,
+	category: '',
+	confirmations: 393735,
+	data: 'OBD Test Token NO.1',
+	divisible: true,
+	ecosystem: 'main',
+	fee: '0.00000254',
+	ismine: true,
+	positioninblock: 147,
+	propertyid: 137,
+	propertyname: 'OBD-1',
+	propertytype: 'divisible',
+	sendingaddress: 'n4j37pAMNsjkTs6roKof3TGNvmPh16fvpS',
+	subcategory: '',
+	txid: 'a04a7a285e636ebf013ceec94748ee9dbe8d3d72f64a53cc12fcbc36d45fce2f',
+	type: 'Create Property - Fixed',
+	type_int: 50,
+	url: '',
+	valid: true,
+	version: 0
+};
