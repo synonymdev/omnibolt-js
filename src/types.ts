@@ -899,3 +899,37 @@ export interface IGenerateOmniboltUri {
 	action: string;
 	data: string | object;
 }
+
+export interface IGetAllBalancesForAddressResponse {
+	balance: string;
+	frozen: string;
+	name: string;
+	propertyid: number;
+	reserved: string;
+}
+
+export interface IGetTransactionResponse {
+	amount: string;
+	block: number;
+	blockhash: string;
+	blocktime: number;
+	category: string;
+	confirmations: number;
+	data: string;
+	divisible: boolean;
+	ecosystem: string;
+	fee: string;
+	ismine: boolean;
+	positioninblock: number;
+	propertyid: number;
+	propertyname: string;
+	propertytype: string;
+	sendingaddress: string;
+	subcategory: string;
+	txid: string;
+	type: string;
+	type_int: number;
+	url: string;
+	valid: boolean;
+	version: number;
+}
