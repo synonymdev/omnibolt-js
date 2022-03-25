@@ -246,7 +246,6 @@ export default class ObdApi {
 					const msg = `Connected to ${this.defaultUrl}`;
 					if (this.onMessage) this.onMessage(msg);
 					this.isConnectedToOBD = true;
-					this.resumeFromCheckpoints().then();
 					this.onOpen(msg);
 				};
 
@@ -380,6 +379,8 @@ export default class ObdApi {
 		if (loginResponse.isErr()) {
 			return err(loginResponse.error.message);
 		}
+		// Perform any checkpoint actions after a successful login.
+		this.resumeFromCheckpoints().then();
 		return ok({ ...connectResponse.value, ...loginResponse.value });
 	}
 
